@@ -6,6 +6,7 @@ const {
   escapeHtml,
   sendTelegramMessage
 } = require('../lib/telegram');
+const { connectBlobs } = require('../lib/blobs-context');
 
 const PERIOD_BUTTONS = {
   inline_keyboard: [[
@@ -100,6 +101,8 @@ async function sendReport(chatId, period) {
 }
 
 exports.handler = async (event) => {
+  connectBlobs(event);
+
   if (event.httpMethod !== 'POST') {
     return jsonResponse(405, { ok: false, error: 'Method not allowed' });
   }

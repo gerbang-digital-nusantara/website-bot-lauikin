@@ -7,6 +7,7 @@ const CORS_HEADERS = {
 
 const { saveAnalyticsEvent } = require('../lib/analytics');
 const { sendTelegramMessage } = require('../lib/telegram');
+const { connectBlobs } = require('../lib/blobs-context');
 
 function jsonResponse(statusCode, body) {
   return {
@@ -17,6 +18,8 @@ function jsonResponse(statusCode, body) {
 }
 
 exports.handler = async (event) => {
+  connectBlobs(event);
+
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
