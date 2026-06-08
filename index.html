@@ -1044,11 +1044,11 @@ function orderMenu(menuName) {
   const msg = encodeURIComponent('Halo, saya ingin memesan: ' + menuName);
 
   sendTelegram(
-    '🍽️ <b>Klik Menu: ' + escapeHtml(menuName) + '</b>\n\n' +
-    '📱 <b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
-    '🖥️ <b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
-    '🕐 <b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
-    '🔗 <b>URL:</b> ' + escapeHtml(window.location.href),
+    '<b>Klik Menu: ' + escapeHtml(menuName) + '</b>\n\n' +
+    '<b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
+    '<b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
+    '<b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
+    '<b>URL:</b> ' + escapeHtml(window.location.href),
     buildAnalyticsEvent('menu_click', menuName)
   );
 
