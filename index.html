@@ -941,7 +941,9 @@ function buildAnalyticsEvent(type, label = '') {
     source: detectPlatform(),
     sourceDetail: detectSourceDetail(),
     device: detectDevice(),
-    url: window.location.href
+    url: window.location.href,
+    timestamp: new Date().toISOString(),
+    wibTime: getWIBTime()
   };
 }
 

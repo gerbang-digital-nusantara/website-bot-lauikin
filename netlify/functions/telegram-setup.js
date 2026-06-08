@@ -34,7 +34,8 @@ exports.handler = async (event) => {
         { command: 'hariini', description: 'Rekap hari ini' },
         { command: 'mingguini', description: 'Rekap minggu ini' },
         { command: 'bulanini', description: 'Rekap bulan ini' },
-        { command: 'rekap', description: 'Pilih periode rekap' }
+        { command: 'rekap', description: 'Rekap per tanggal/range dari chat' },
+        { command: 'cekdata', description: 'Cek data rekap chat tersimpan' }
       ]
     });
 

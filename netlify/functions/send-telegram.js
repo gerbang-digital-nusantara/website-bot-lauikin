@@ -6,6 +6,7 @@ const CORS_HEADERS = {
 };
 
 const { saveAnalyticsEvent } = require('../lib/analytics');
+const { saveChatRekapMessage } = require('../lib/chat-rekap');
 const { sendTelegramMessage } = require('../lib/telegram');
 const { connectBlobs } = require('../lib/blobs-context');
 
@@ -61,28 +62,43 @@ exports.handler = async (event) => {
       message = message.substring(0, 3500) + '\n\n[Pesan dipotong]';
     }
 
-    const [analyticsResult, telegramResult] = await Promise.allSettled([
-      body.analytics
-        ? saveAnalyticsEvent(body.analytics)
-        : Promise.resolve(null),
-      sendTelegramMessage(chatId, message)
-    ]);
+    const analyticsPromise = body.analytics
+      ? saveAnalyticsEvent(body.analytics)
+      : Promise.resolve(null);
 
-    if (analyticsResult.status === 'rejected') {
-      console.error('[Analytics Error]', analyticsResult.reason);
-    }
-
-    if (telegramResult.status === 'rejected') {
-      console.error('[Telegram API Error]', telegramResult.reason);
+    let telegramMessage;
+    try {
+      telegramMessage = await sendTelegramMessage(chatId, message);
+    } catch (error) {
+      console.error('[Telegram API Error]', error);
       return jsonResponse(502, {
         ok: false,
         error: 'Telegram API error'
       });
     }
 
+    const [analyticsResult, chatRekapResult] = await Promise.allSettled([
+      analyticsPromise,
+      saveChatRekapMessage(message, body.analytics, {
+        telegramMessageId: telegramMessage?.message_id
+      })
+    ]);
+
+    if (analyticsResult.status === 'rejected') {
+      console.error('[Analytics Error]', analyticsResult.reason);
+    }
+
+    if (chatRekapResult.status === 'rejected') {
+      console.error('[Chat Rekap Error]', chatRekapResult.reason);
+    }
+
     return jsonResponse(200, {
       ok: true,
-      analytics_saved: analyticsResult.status === 'fulfilled'
+      analytics_saved: analyticsResult.status === 'fulfilled',
+      chat_rekap_saved: chatRekapResult.status === 'fulfilled'
+        && Boolean(chatRekapResult.value?.saved),
+      chat_rekap_counted: chatRekapResult.status === 'fulfilled'
+        && Boolean(chatRekapResult.value?.counted)
     });
   } catch (error) {
     console.error('[Function Error]', error);

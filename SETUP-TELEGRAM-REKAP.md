@@ -49,7 +49,21 @@ Respons yang benar:
 }
 ```
 
-## 4. Gunakan bot
+## 4. Cara kerja rekap terbaru
+
+Setiap notifikasi yang berhasil dikirim ke Telegram juga disimpan ke Netlify
+Blobs sebagai data rekap chat:
+
+- `chat-events/YYYY-MM-DD/...` menyimpan pesan chat mentah yang sudah diparse.
+- `chat-summaries/YYYY-MM-DD.json` menyimpan ringkasan harian agar `/rekap`
+  cepat dan tidak perlu scan semua analytics.
+- Tanggal rekap diambil dari baris `<b>Waktu:</b> ... WIB` yang ada di pesan
+  Telegram, bukan dari waktu server saja.
+
+Rekap utama sekarang membaca data chat Telegram tersimpan. Analytics lama tetap
+ada untuk pembanding lewat `/cekdata`.
+
+## 5. Gunakan bot
 
 Perintah yang tersedia:
 
@@ -59,12 +73,25 @@ Perintah yang tersedia:
 /bulanini
 /rekap
 /rekap 2026-06-09
+/rekap 09/06/2026
+/rekap 9/6
+/rekap 9
+/rekap 9-10
 /rekap 2026-06-01 2026-06-09
+/cekdata 2026-06-09
 ```
 
 Bot juga memahami kalimat seperti `tolong rekap minggu ini`,
-`tolong rekap 8 juni 2026`, atau `tolong rekap 8-9 juni 2026`.
-Range tanggal custom dibatasi maksimal 62 hari agar rekap tetap cepat.
+`tolong rekap 8 juni 2026`, `tolong rekap 8-9 juni 2026`, atau
+`rekap tanggal 9`.
 
-Data mulai dihitung setelah versi analytics ini dideploy. Pesan lama yang
-sudah ada di Telegram tidak dapat dihitung mundur.
+Range tanggal custom dibatasi maksimal 62 hari agar rekap tetap cepat. Gunakan
+`/cekdata` kalau ingin memastikan data chat dan data analytics tersimpan di
+Netlify Blobs.
+
+## 6. Catatan penting
+
+Telegram Bot API tidak bisa membaca mundur seluruh pesan lama yang sudah ada di
+chat sebelum fitur ini dideploy. Data rekap chat mulai lengkap setelah versi ini
+dideploy, karena sejak saat itu setiap pesan notifikasi baru akan ikut disimpan
+ke Netlify Blobs.

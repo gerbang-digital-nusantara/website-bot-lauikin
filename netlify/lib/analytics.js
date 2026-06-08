@@ -185,6 +185,11 @@ function mergeCounts(target, source) {
   }
 }
 
+function sumSummaryTotals(summary) {
+  return Object.values(summary?.totals || {})
+    .reduce((total, value) => total + Number(value || 0), 0);
+}
+
 function applyEventToSummary(summary, event) {
   if (summary.eventIds[event.id]) {
     return false;
@@ -205,6 +210,17 @@ function applyEventToSummary(summary, event) {
   }
 
   return true;
+}
+
+function summarizeEvents(events) {
+  const summary = makeEmptySummary();
+
+  for (const event of events || []) {
+    if (!event?.id || !EVENT_TYPES.has(event.type)) continue;
+    applyEventToSummary(summary, event);
+  }
+
+  return summary;
 }
 
 async function updateDailySummary(store, event, dayKey) {
@@ -276,7 +292,8 @@ async function saveAnalyticsEvent(rawEvent) {
   };
 }
 
-async function getSummaryForRange(range) {
+async function getSummaryForRange(range, options = {}) {
+  const { fallbackToEvents = true } = options;
   const store = await getAnalyticsStore();
   const dayKeys = getDayKeys(range.start, range.end);
   const summary = makeEmptySummary();
@@ -303,20 +320,26 @@ async function getSummaryForRange(range) {
     }
   }
 
-  return { summary, range };
+  if (fallbackToEvents && (range.period === 'custom' || sumSummaryTotals(summary) === 0)) {
+    const { events } = await getEventsForRange(range);
+    const eventSummary = summarizeEvents(events);
+
+    if (sumSummaryTotals(eventSummary) > sumSummaryTotals(summary)) {
+      return { summary: eventSummary, range, source: 'events' };
+    }
+  }
+
+  return { summary, range, source: 'summaries' };
 }
 
 async function getSummaryForPeriod(period, now = new Date()) {
   return getSummaryForRange(getPeriodRange(period, now));
 }
 
-async function getEventsForPeriod(period, now = new Date()) {
-  const range = getPeriodRange(period, now);
+async function getEventsForRange(range) {
   const store = await getAnalyticsStore();
   const dayKeys = getDayKeys(range.start, range.end);
-  const prefixes = period === 'month'
-    ? [`events/${dayKeys[0].slice(0, 7)}-`]
-    : dayKeys.map((dayKey) => `events/${dayKey}/`);
+  const prefixes = dayKeys.map((dayKey) => `events/${dayKey}/`);
   const events = [];
 
   for (const prefix of prefixes) {
@@ -344,8 +367,31 @@ async function getEventsForPeriod(period, now = new Date()) {
   return { events, range };
 }
 
+async function getEventsForPeriod(period, now = new Date()) {
+  return getEventsForRange(getPeriodRange(period, now));
+}
+
+async function getAnalyticsDiagnostics(range) {
+  const { summary } = await getSummaryForRange(range, {
+    fallbackToEvents: false
+  });
+  const { events } = await getEventsForRange(range);
+  const eventSummary = summarizeEvents(events);
+
+  return {
+    range,
+    summary,
+    eventSummary,
+    rawEventCount: events.length,
+    summaryTotal: sumSummaryTotals(summary),
+    eventTotal: sumSummaryTotals(eventSummary)
+  };
+}
+
 module.exports = {
+  getAnalyticsDiagnostics,
   getDateRange,
+  getEventsForRange,
   getEventsForPeriod,
   getPeriodRange,
   getSummaryForRange,

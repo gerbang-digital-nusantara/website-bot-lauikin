@@ -1,8 +1,12 @@
 const {
+  getAnalyticsDiagnostics,
   getDateRange,
-  getSummaryForRange,
-  getSummaryForPeriod
+  getPeriodRange
 } = require('../lib/analytics');
+const {
+  getChatRekapDiagnostics,
+  getChatRekapForRange
+} = require('../lib/chat-rekap');
 const {
   callTelegram,
   escapeHtml,
@@ -53,6 +57,10 @@ function jsonResponse(statusCode, body) {
   };
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function detectPeriod(text) {
   const value = String(text || '').toLowerCase();
   if (value.includes('bulan') || value.includes('/bulanini')) return 'month';
@@ -60,6 +68,11 @@ function detectPeriod(text) {
   if (value.includes('hari ini') || value.includes('/hariini')) return 'day';
   if (value.trim() === '/rekap' || value.trim() === 'rekap') return 'day';
   return null;
+}
+
+function isDiagnosticRequest(text) {
+  const value = String(text || '').toLowerCase().trim();
+  return value.startsWith('/cekdata') || value.startsWith('/statusdata');
 }
 
 function pad2(value) {
@@ -105,12 +118,12 @@ function extractDateMentions(text, now = new Date()) {
     );
   }
 
-  for (const match of value.matchAll(/\b(?!20\d{2}[-/.])(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})\b/g)) {
+  for (const match of value.matchAll(/(^|[^\d./-])(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})(?![\d./-])/g)) {
     addDateMention(
       matches,
       seen,
-      toDayKeyString(Number(match[3]), Number(match[2]), Number(match[1])),
-      match.index || 0
+      toDayKeyString(Number(match[4]), Number(match[3]), Number(match[2])),
+      (match.index || 0) + match[1].length
     );
   }
 
@@ -144,6 +157,50 @@ function extractDateMentions(text, now = new Date()) {
     }
   }
 
+  for (const match of value.matchAll(/(^|[^\d./-])(\d{1,2})[/.](\d{1,2})(?![/.]\d)/g)) {
+    addDateMention(
+      matches,
+      seen,
+      toDayKeyString(defaultYear, Number(match[3]), Number(match[2])),
+      (match.index || 0) + match[1].length
+    );
+  }
+
+  if (!matches.length) {
+    const compactRequest = value
+      .replace(/^\s*\/?rekap\b/, '')
+      .replace(/^\s*(tolong|minta|coba)\s+rekap\b/, '')
+      .replace(/\b(tgl|tanggal)\b/g, '')
+      .trim();
+    const dayOnly = /^(\d{1,2})(?:\s*[-–]\s*(\d{1,2}))?$/.exec(compactRequest);
+
+    if (dayOnly) {
+      const nowParts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit'
+      }).formatToParts(now);
+      const month = Number(nowParts.find((part) => part.type === 'month')?.value);
+      const year = Number(nowParts.find((part) => part.type === 'year')?.value);
+
+      addDateMention(
+        matches,
+        seen,
+        toDayKeyString(year, month, Number(dayOnly[1])),
+        0
+      );
+
+      if (dayOnly[2]) {
+        addDateMention(
+          matches,
+          seen,
+          toDayKeyString(year, month, Number(dayOnly[2])),
+          1
+        );
+      }
+    }
+  }
+
   return matches.sort((a, b) => a.index - b.index);
 }
 
@@ -172,11 +229,6 @@ function makeCustomRange(startDayKey, endDayKey) {
 }
 
 function parseReportRequest(text) {
-  const period = detectPeriod(text);
-  if (period) {
-    return { kind: 'period', period };
-  }
-
   const dates = extractDateMentions(text);
   if (dates.length) {
     try {
@@ -194,7 +246,23 @@ function parseReportRequest(text) {
     }
   }
 
+  const period = detectPeriod(text);
+  if (period) {
+    return { kind: 'period', period };
+  }
+
   return null;
+}
+
+function parseDiagnosticsRange(text) {
+  const dates = extractDateMentions(text);
+  if (dates.length) {
+    const startDayKey = dates[0].dayKey;
+    const endDayKey = dates[1]?.dayKey || startDayKey;
+    return makeCustomRange(startDayKey, endDayKey);
+  }
+
+  return getPeriodRange(detectPeriod(text) || 'day');
 }
 
 function sourceLines(sourceCounts) {
@@ -218,7 +286,7 @@ function formatWib(date) {
   }).format(date);
 }
 
-function buildReport(summary, range) {
+function buildReport(summary, range, source = 'summaries') {
   const totals = summary.totals || {};
   const visitors = totals.visitor || 0;
   const orders = totals.order_intent || 0;
@@ -246,16 +314,89 @@ function buildReport(summary, range) {
     `<b>Klik menu produk: ${menuClicks}</b>`,
     `<b>Klik tautan sosial: ${socialClicks}</b>`,
     '',
-    '<i>Data dihitung dari ringkasan harian agar rekap cepat.</i>'
+    source === 'chat_events'
+      ? '<i>Data dihitung dari pesan chat Telegram tersimpan untuk tanggal ini.</i>'
+      : source === 'chat_summaries'
+        ? '<i>Data dihitung dari ringkasan chat harian agar rekap cepat.</i>'
+        : source === 'events'
+          ? '<i>Data dibaca dari event mentah karena summary harian belum lengkap.</i>'
+          : '<i>Data dihitung dari ringkasan harian agar rekap cepat.</i>'
   ].join('\n');
 }
 
 async function sendReport(chatId, request) {
-  const { summary, range } = request.kind === 'range'
-    ? await getSummaryForRange(request.range)
-    : await getSummaryForPeriod(request.period);
+  let done = false;
+  callTelegram('sendChatAction', {
+    chat_id: chatId,
+    action: 'typing'
+  }).catch(() => {});
 
-  return sendTelegramMessage(chatId, buildReport(summary, range), {
+  wait(1200)
+    .then(async () => {
+      if (done) return;
+      await sendTelegramMessage(
+        chatId,
+        'Sebentar, rekap sedang dibaca dari data chat Telegram...'
+      );
+    })
+    .catch(() => {});
+
+  const targetRange = request.kind === 'range'
+    ? request.range
+    : getPeriodRange(request.period);
+  const { summary, range, source } = await getChatRekapForRange(targetRange);
+  done = true;
+
+  return sendTelegramMessage(chatId, buildReport(summary, range, source), {
+    reply_markup: PERIOD_BUTTONS
+  });
+}
+
+function buildDiagnosticsReport(chatResult, analyticsResult) {
+  const chatSummaryTotals = chatResult.summary.totals || {};
+  const chatEventTotals = chatResult.eventSummary.totals || {};
+  const analyticsSummaryTotals = analyticsResult.summary.totals || {};
+  const analyticsEventTotals = analyticsResult.eventSummary.totals || {};
+  const verdict = chatResult.eventTotal > 0 || chatResult.summaryTotal > 0
+    ? 'Data rekap chat ada.'
+    : 'Belum ada data rekap chat untuk range ini.';
+
+  return [
+    '<b>CEK DATA REKAP</b>',
+    `${formatWib(chatResult.range.start)} - ${formatWib(chatResult.range.end)} WIB`,
+    '',
+    `<b>${verdict}</b>`,
+    '',
+    '<b>Rekap chat Telegram:</b>',
+    `  - Summary chat: <b>${chatResult.summaryTotal}</b> event`,
+    `    • Pengunjung: <b>${chatSummaryTotals.visitor || 0}</b>`,
+    `    • Klik pesan: <b>${chatSummaryTotals.order_intent || 0}</b>`,
+    `  - Pesan chat tersimpan: <b>${chatResult.rawMessageCount}</b> pesan / <b>${chatResult.eventTotal}</b> event valid`,
+    `    • Pengunjung: <b>${chatEventTotals.visitor || 0}</b>`,
+    `    • Klik pesan: <b>${chatEventTotals.order_intent || 0}</b>`,
+    '',
+    '<b>Analytics lama:</b>',
+    `  - Summary analytics: <b>${analyticsResult.summaryTotal}</b> event`,
+    `    • Pengunjung: <b>${analyticsSummaryTotals.visitor || 0}</b>`,
+    `    • Klik pesan: <b>${analyticsSummaryTotals.order_intent || 0}</b>`,
+    `  - Event analytics mentah: <b>${analyticsResult.rawEventCount}</b> blob / <b>${analyticsResult.eventTotal}</b> event valid`,
+    `    • Pengunjung: <b>${analyticsEventTotals.visitor || 0}</b>`,
+    `    • Klik pesan: <b>${analyticsEventTotals.order_intent || 0}</b>`,
+    '',
+    chatResult.eventTotal > chatResult.summaryTotal
+      ? '<i>Pesan chat mentah lebih lengkap dari summary. Rekap akan fallback ke pesan chat tersimpan.</i>'
+      : '<i>Rekap utama sekarang memakai data chat Telegram, bukan scan semua analytics.</i>'
+  ].join('\n');
+}
+
+async function sendDiagnostics(chatId, text) {
+  const range = parseDiagnosticsRange(text);
+  const [chatResult, analyticsResult] = await Promise.all([
+    getChatRekapDiagnostics(range),
+    getAnalyticsDiagnostics(range)
+  ]);
+
+  return sendTelegramMessage(chatId, buildDiagnosticsReport(chatResult, analyticsResult), {
     reply_markup: PERIOD_BUTTONS
   });
 }
@@ -301,6 +442,11 @@ exports.handler = async (event) => {
     }
 
     const text = String(message?.text || '');
+    if (isDiagnosticRequest(text)) {
+      await sendDiagnostics(chatId, text);
+      return jsonResponse(200, { ok: true });
+    }
+
     const request = parseReportRequest(text);
 
     if (request?.kind === 'error') {
@@ -313,7 +459,9 @@ exports.handler = async (event) => {
           'Contoh:',
           '/rekap 2026-06-09',
           '/rekap 09/06/2026',
-          '/rekap 2026-06-01 2026-06-09'
+          '/rekap 2026-06-01 2026-06-09',
+          '/rekap 9',
+          '/rekap 9/6'
         ].join('\n'),
         { reply_markup: PERIOD_BUTTONS }
       );
@@ -331,8 +479,11 @@ exports.handler = async (event) => {
           '/bulanini - rekap bulan ini',
           '/rekap 2026-06-09 - rekap tanggal tertentu',
           '/rekap 2026-06-01 2026-06-09 - rekap range tanggal',
+          '/rekap 9 - rekap tanggal 9 bulan ini',
+          '/rekap 9/6 - rekap 9 Juni tahun ini',
+          '/cekdata 2026-06-09 - cek data rekap chat tersimpan atau tidak',
           '',
-          'Bisa juga tulis: <i>tolong rekap minggu ini</i> atau <i>tolong rekap 8 juni 2026</i>.'
+          'Bisa juga tulis: <i>tolong rekap minggu ini</i>, <i>tolong rekap 8 juni 2026</i>, atau <i>rekap tanggal 9</i>.'
         ].join('\n'),
         { reply_markup: PERIOD_BUTTONS }
       );
