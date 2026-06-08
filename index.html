@@ -571,66 +571,66 @@
   .image-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(8, 30, 44, 0.72);
-    backdrop-filter: blur(5px);
+    background: rgba(8, 30, 44, 0.46);
+    backdrop-filter: blur(2px);
   }
 
   .image-modal-dialog {
     position: relative;
     z-index: 1;
-    width: min(100%, 520px);
-    max-height: min(92vh, 760px);
-    padding: 14px;
-    border-radius: 18px;
-    background: #ffffff;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+    width: min(calc(100vw - 24px), 720px);
+    max-height: calc(100dvh - 42px);
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    gap: 0;
     animation: popIn 0.22s ease both;
   }
 
   .image-modal-title {
-    padding-right: 42px;
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    z-index: 2;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.86);
     color: var(--blue-dark);
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 800;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
   }
 
   .image-modal-close {
     position: absolute;
     top: 10px;
     right: 10px;
+    z-index: 3;
     width: 34px;
     height: 34px;
     border: 0;
     border-radius: 50%;
-    background: var(--blue-soft);
+    background: rgba(255,255,255,0.9);
     color: var(--blue-dark);
     font-size: 24px;
     line-height: 1;
     cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.14);
   }
 
   .image-modal img {
     width: 100%;
-    max-height: 70vh;
+    height: auto;
+    max-height: calc(100dvh - 48px);
     object-fit: contain;
-    border-radius: 12px;
-    background: var(--blue-soft);
-  }
-
-  .image-modal-open {
-    display: block;
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: var(--yellow);
-    color: var(--blue-dark);
-    font-size: 14px;
-    font-weight: 800;
-    text-align: center;
-    text-decoration: none;
+    border-radius: 14px;
+    background: transparent;
+    image-rendering: auto;
+    filter: drop-shadow(0 18px 40px rgba(0,0,0,0.28));
   }
 
   body.modal-open {
@@ -818,8 +818,7 @@
   <div class="image-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="imageModalTitle">
     <button class="image-modal-close" type="button" onclick="closeMenuImage()" aria-label="Tutup gambar">×</button>
     <div class="image-modal-title" id="imageModalTitle">Menu Lauk.in</div>
-    <img id="imageModalImg" src="" alt="">
-    <a id="imageModalOpen" class="image-modal-open" href="#" target="_blank" rel="noopener">Buka gambar penuh</a>
+    <img id="imageModalImg" src="" alt="" decoding="async">
   </div>
 </div>
 
@@ -1050,8 +1049,42 @@ function makeTrackingPayload(analytics) {
   return JSON.stringify({ analytics });
 }
 
+function isTrackingEnabled() {
+  const protocol = window.location.protocol;
+
+  // Dibuka langsung dari file explorer / VS Code path: file://...
+  // Netlify Function hanya bisa dipanggil lewat HTTP/HTTPS.
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    return false;
+  }
+
+  return Boolean(CONFIG.trackingEndpoint);
+}
+
+function getTrackingEndpoint() {
+  return new URL(CONFIG.trackingEndpoint, window.location.origin).toString();
+}
+
+function skipTracking(reason) {
+  if (window.location.protocol === 'file:') {
+    console.info('[Tracking Skip]', reason + '. Jalankan via Netlify deploy atau `netlify dev`.');
+  }
+
+  return Promise.resolve({
+    ok: true,
+    skipped: true,
+    reason
+  });
+}
+
 function sendTrackingEvent(analytics, retries = 2) {
-  return fetch(CONFIG.trackingEndpoint, {
+  if (!isTrackingEnabled()) {
+    return skipTracking('Tracking nonaktif karena halaman tidak dibuka lewat HTTP/HTTPS');
+  }
+
+  const endpoint = getTrackingEndpoint();
+
+  return fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1079,6 +1112,7 @@ function sendTrackingEvent(analytics, retries = 2) {
       console.error('[Tracking Error]', {
         status: response.status,
         statusText: response.statusText,
+        endpoint,
         response: data
       });
     }
@@ -1089,7 +1123,7 @@ function sendTrackingEvent(analytics, retries = 2) {
     console.error('[Tracking Fetch Error]', {
       message: error.message,
       type: error.name,
-      endpoint: CONFIG.trackingEndpoint
+      endpoint
     });
 
     if (retries > 0 && (error.message === 'Failed to fetch' || error.message === 'NetworkError')) {
@@ -1108,12 +1142,25 @@ function sendTrackingEvent(analytics, retries = 2) {
 }
 
 function sendTrackingBeacon(analytics) {
+  if (!isTrackingEnabled()) {
+    return skipTracking('Beacon nonaktif karena halaman tidak dibuka lewat HTTP/HTTPS');
+  }
+
   const payload = makeTrackingPayload(analytics);
+  const endpoint = getTrackingEndpoint();
 
   if (navigator.sendBeacon && typeof Blob === 'function') {
-    const blob = new Blob([payload], { type: 'application/json' });
-    if (navigator.sendBeacon(CONFIG.trackingEndpoint, blob)) {
-      return Promise.resolve({ ok: true, beacon: true });
+    try {
+      const blob = new Blob([payload], { type: 'application/json' });
+      if (navigator.sendBeacon(endpoint, blob)) {
+        return Promise.resolve({ ok: true, beacon: true });
+      }
+    } catch (error) {
+      console.warn('[Tracking Beacon Skip]', {
+        message: error.message,
+        type: error.name,
+        endpoint
+      });
     }
   }
 
@@ -1143,13 +1190,9 @@ function openMenuImage(menuName, imageSrc) {
   const modal = document.getElementById('imageModal');
   const modalTitle = document.getElementById('imageModalTitle');
   const modalImg = document.getElementById('imageModalImg');
-  const modalOpen = document.getElementById('imageModalOpen');
-
   modalTitle.textContent = menuName;
   modalImg.src = imageSrc;
   modalImg.alt = menuName;
-  modalOpen.href = imageSrc;
-
   modal.classList.add('show');
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('modal-open');
