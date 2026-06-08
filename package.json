@@ -1,0 +1,11 @@
+{
+  "name": "laukin-links",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@netlify/blobs": "10.7.9"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  }
+}

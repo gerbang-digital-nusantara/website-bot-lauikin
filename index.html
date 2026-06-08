@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Links | Lauk.In</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --orange: #FF6B2C;
+    --orange-dark: #E85A1F;
+    --orange-light: #FFF0E8;
+    --cream: #FFFDF8;
+    --brown: #3B2005;
+    --brown-mid: #7A4A1E;
+    --gray: #8A8A8A;
+    --green: #25D366;
+    --green-dark: #128C7E;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--brown);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .hero {
+    width: 100%;
+    height: 260px;
+    background: linear-gradient(160deg, #FF6B2C 0%, #E85A1F 40%, #C94A10 70%, #3B2005 100%);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(transparent, rgba(59,32,5,0.15));
+  }
+
+  .hero-text {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding-bottom: 36px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .hero-tagline {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 900;
+    color: white;
+    line-height: 1.2;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+    letter-spacing: -0.5px;
+  }
+
+  .hero-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.8);
+    margin-top: 8px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: -44px;
+    position: relative;
+    z-index: 10;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+  }
+
+  @keyframes popIn {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .logo-bubble {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    border: 4px solid white;
+    box-shadow: 0 8px 32px rgba(255,107,44,0.3), 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    background: linear-gradient(135deg, #FFF0E8, #FFD5BB);
+    transition: transform 0.3s ease;
+  }
+
+  .logo-bubble:hover {
+    transform: scale(1.05) rotate(-3deg);
+  }
+
+  .brand-info {
+    text-align: center;
+    padding: 14px 24px 0;
+    animation: fadeUp 0.5s ease 0.3s both;
+  }
+
+  .brand-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--brown);
+    letter-spacing: -0.3px;
+  }
+
+  .brand-desc {
+    font-size: 13px;
+    color: var(--brown-mid);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  .badges {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    padding: 0 24px;
+    animation: fadeUp 0.5s ease 0.4s both;
+  }
+
+  .badge {
+    background: var(--orange-light);
+    color: var(--orange-dark);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 50px;
+    border: 1px solid rgba(255,107,44,0.2);
+    letter-spacing: 0.3px;
+  }
+
+  .socials {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 18px auto 0;
+    flex-wrap: wrap;
+    animation: fadeUp 0.5s ease 0.45s both;
+  }
+
+  .social-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    border: none;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .social-btn:hover {
+    transform: translateY(-4px) scale(1.1);
+  }
+
+  .social-btn.wa {
+    background: #25D366;
+    box-shadow: 0 4px 16px rgba(37,211,102,0.35);
+  }
+
+  .social-btn.ig {
+    background: linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+    box-shadow: 0 4px 16px rgba(220,39,67,0.3);
+  }
+
+  .social-btn.tt {
+    background: #010101;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  }
+
+  .social-btn.fb {
+    background: #1877F2;
+    box-shadow: 0 4px 16px rgba(24,119,242,0.3);
+  }
+
+  .social-btn.web {
+    background: var(--orange);
+    box-shadow: 0 4px 16px rgba(255,107,44,0.35);
+  }
+
+  .social-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: white;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 24px;
+    margin: 24px auto 0;
+    max-width: 480px;
+  }
+
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(59,32,5,0.15), transparent);
+  }
+
+  .divider span {
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .cta-wrap {
+    padding: 16px 24px 0;
+    display: flex;
+    justify-content: center;
+    animation: fadeUp 0.5s ease 0.5s both;
+  }
+
+  .cta-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    color: white;
+    text-decoration: none;
+    padding: 15px 32px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    box-shadow: 0 6px 24px rgba(37,211,102,0.35);
+    transition: all 0.25s ease;
+    width: 100%;
+    max-width: 360px;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.2s;
+  }
+
+  .cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 36px rgba(37,211,102,0.45);
+  }
+
+  .cta-btn:hover::before {
+    background: rgba(255,255,255,0.08);
+  }
+
+  .cta-btn:active {
+    transform: scale(0.97);
+  }
+
+  .cta-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: white;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--brown);
+    margin: 28px 0 14px;
+    animation: fadeUp 0.5s ease 0.55s both;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 0 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    animation: fadeUp 0.5s ease 0.6s both;
+  }
+
+  .product-card {
+    border-radius: 14px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    position: relative;
+    background: var(--orange-light);
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+    box-shadow: 0 2px 8px rgba(59,32,5,0.06);
+  }
+
+  .product-card:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255,107,44,0.2);
+  }
+
+  .product-card:active {
+    transform: scale(0.97);
+  }
+
+  .product-card .emoji {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    transition: transform 0.25s ease;
+  }
+
+  .product-card:hover .emoji {
+    transform: scale(1.15);
+  }
+
+  .product-card .label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(59,32,5,0.88));
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+    padding: 14px 4px 7px;
+    letter-spacing: 0.2px;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 24px 16px 48px;
+    font-size: 11px;
+    color: var(--gray);
+    animation: fadeUp 0.5s ease 0.7s both;
+  }
+
+  .footer a {
+    color: var(--orange);
+    text-decoration: none;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--brown);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease;
+    opacity: 0;
+    white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  @media (min-width: 480px) {
+    .hero {
+      height: 300px;
+    }
+
+    .hero-tagline {
+      font-size: 32px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="hero">
+  <div class="hero-text">
+    <div class="hero-tagline">Masak Cepat, Makan Enak 🍳</div>
+    <div class="hero-sub">Lauk Segar · Siap Masak · Pesan Sekarang</div>
+  </div>
+</div>
+
+<div class="logo-wrap">
+  <div class="logo-bubble">🍽️</div>
+</div>
+
+<div class="brand-info">
+  <div class="brand-name">NamaBisnis Anda</div>
+  <div class="brand-desc">Masak Cepat, Makan Enak</div>
+</div>
+
+<div class="badges">
+  <span class="badge">✅ Halal</span>
+  <span class="badge">🚚 Antar ke Rumah</span>
+  <span class="badge">⏱️ Siap dalam 30 Menit</span>
+</div>
+
+<div class="socials">
+  <a href="https://wa.me/c/6285199204460" class="social-btn wa" title="WhatsApp" onclick="trackClick('Social WA')">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+
+  <a href="https://www.instagram.com/akun_anda" class="social-btn ig" title="Instagram" onclick="trackClick('Social IG')">
+    <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+  </a>
+
+  <a href="https://www.tiktok.com/@akun_anda" class="social-btn tt" title="TikTok" onclick="trackClick('Social TT')">
+    <svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V9.01a8.16 8.16 0 004.77 1.52V7.07a4.85 4.85 0 01-1-.38z"/></svg>
+  </a>
+
+  <a href="https://www.facebook.com/akun_anda" class="social-btn fb" title="Facebook" onclick="trackClick('Social FB')">
+    <svg viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+  </a>
+
+  <a href="https://namabisnis.com" class="social-btn web" title="Website" onclick="trackClick('Social Web')">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+  </a>
+</div>
+
+<div class="divider"><span>Hubungi Kami</span></div>
+
+<div class="cta-wrap">
+  <a href="https://wa.me/c/6285199204460" class="cta-btn" onclick="handleWAClick(event, 'Tombol Atas')">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Pesan Sekarang via WhatsApp
+  </a>
+</div>
+
+<div class="divider"><span>Menu Unggulan</span></div>
+
+<div class="section-title">🔥 Pilihan Terpopuler</div>
+
+<div class="product-grid">
+  <div class="product-card" onclick="orderMenu('Ayam Goreng')">
+    <div class="emoji">🍗</div>
+    <div class="label">Ayam Goreng</div>
+  </div>
+
+  <div class="product-card" onclick="orderMenu('Daging Sapi')">
+    <div class="emoji">🥩</div>
+    <div class="label">Daging Sapi</div>
+  </div>
+
+  <div class="product-card" onclick="orderMenu('Ikan Segar')">
+    <div class="emoji">🐟</div>
+    <div class="label">Ikan Segar</div>
+  </div>
+
+  <div class="product-card" onclick="orderMenu('Sayur Segar')">
+    <div class="emoji">🥗</div>
+    <div class="label">Sayur Segar</div>
+  </div>
+
+  <div class="product-card" onclick="orderMenu('Paket Masak')">
+    <div class="emoji">🍳</div>
+    <div class="label">Paket Masak</div>
+  </div>
+
+  <div class="product-card" onclick="orderMenu('Bumbu Siap')">
+    <div class="emoji">🍜</div>
+    <div class="label">Bumbu Siap</div>
+  </div>
+
+  <div class="product-card" onclick="orderMenu('Telur Kampung')">
+    <div class="emoji">🥚</div>
+    <div class="label">Telur Kampung</div>
+  </div>
+
+  <div class="product-card" onclick="orderMenu('Sambal Rumah')">
+    <div class="emoji">🫙</div>
+    <div class="label">Sambal Rumah</div>
+  </div>
+
+  <div class="product-card" onclick="orderMenu('Paket Hemat')">
+    <div class="emoji">🎁</div>
+    <div class="label">Paket Hemat</div>
+  </div>
+</div>
+
+<div class="cta-wrap" style="padding-top: 20px; padding-bottom: 4px;">
+  <a href="https://wa.me/c/6285199204460" class="cta-btn" onclick="handleWAClick(event, 'Tombol Bawah')">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Lihat Semua Menu &amp; Pesan
+  </a>
+</div>
+
+<div class="footer">
+  © 2026 NamaBisnis Anda · Semua hak dilindungi<br>
+  <span style="margin-top:4px;display:block;">Made with ❤️ for your business</span>
+</div>
+
+<div class="toast" id="toast">💬 Membuka WhatsApp...</div>
+
+<script>
+const CONFIG = {
+  waNumber: '6285199204460',
+  waCatalog: 'https://wa.me/c/6285199204460',
+  telegramEndpoint: '/.netlify/functions/send-telegram'
+};
+
+let toastTimer;
+let fallbackVisitorId;
+
+function getVisitorId() {
+  const storageKey = 'laukin_visitor_id';
+
+  try {
+    let visitorId = localStorage.getItem(storageKey);
+    if (!visitorId) {
+      visitorId = crypto.randomUUID
+        ? crypto.randomUUID()
+        : Date.now() + '-' + Math.random().toString(36).slice(2);
+      localStorage.setItem(storageKey, visitorId);
+    }
+    return visitorId;
+  } catch {
+    fallbackVisitorId ||= (
+      'session-' + Date.now() + '-' + Math.random().toString(36).slice(2)
+    );
+    return fallbackVisitorId;
+  }
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.remove('show');
+  }, 2500);
+}
+
+function detectPlatform() {
+  const ua = navigator.userAgent || '';
+  const ref = document.referrer || '';
+  const params = new URLSearchParams(window.location.search);
+  const utmSource = params.get('utm_source');
+
+  if (utmSource) {
+    return 'Campaign: ' + utmSource.slice(0, 60);
+  }
+  if (params.has('fbclid')) return 'Facebook';
+  if (params.has('gclid')) return 'Google Ads';
+
+  if (/Instagram/i.test(ua)) return '📸 Instagram';
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return '📘 Facebook App';
+  if (/TikTok/i.test(ua)) return '🎵 TikTok';
+  if (/Twitter/i.test(ua)) return '🐦 Twitter/X';
+  if (/Line\//i.test(ua)) return '💬 LINE';
+  if (/WhatsApp/i.test(ua)) return '💚 WhatsApp';
+  if (/Telegram/i.test(ua)) return '✈️ Telegram';
+
+  if (ref.includes('google')) return '🔍 Google';
+  if (ref.includes('bing')) return '🔎 Bing';
+  if (ref.includes('facebook')) return '📘 Facebook Web';
+  if (ref.includes('instagram')) return '📸 Instagram Web';
+  if (ref.includes('tiktok')) return '🎵 TikTok Web';
+  if (ref.includes('youtube')) return '▶️ YouTube';
+  if (ref === '') return '🔗 Direct / Bio Link';
+
+  try {
+    return '🌐 ' + new URL(ref).hostname;
+  } catch {
+    return '🌐 Unknown';
+  }
+}
+
+function detectDevice() {
+  const ua = navigator.userAgent || '';
+
+  if (/iPad/i.test(ua)) return '📱 iPad';
+  if (/iPhone/i.test(ua)) return '🍎 iPhone';
+  if (/Android/i.test(ua)) return '🤖 Android';
+  if (/Windows/i.test(ua)) return '💻 Windows PC';
+  if (/Mac/i.test(ua)) return '🖥️ Mac';
+  if (/Linux/i.test(ua)) return '🐧 Linux';
+
+  return '❓ Unknown';
+}
+
+function getWIBTime() {
+  return new Date().toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }) + ' WIB';
+}
+
+function buildAnalyticsEvent(type, label = '') {
+  return {
+    type,
+    label,
+    visitorId: getVisitorId(),
+    source: detectPlatform(),
+    device: detectDevice(),
+    url: window.location.href
+  };
+}
+
+function sendTelegram(msg, analytics = null, retries = 2) {
+  return fetch(CONFIG.telegramEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: msg,
+      analytics
+    }),
+    mode: 'cors',
+    credentials: 'omit',
+    keepalive: true
+  })
+  .then(async response => {
+    const text = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = {
+        ok: false,
+        error: 'Response bukan JSON',
+        raw: text
+      };
+    }
+
+    if (!response.ok || !data.ok) {
+      console.error('[Telegram Error]', {
+        status: response.status,
+        statusText: response.statusText,
+        response: data
+      });
+    }
+
+    return data;
+  })
+  .catch(error => {
+    console.error('[Telegram Fetch Error]', {
+      message: error.message,
+      type: error.name,
+      endpoint: CONFIG.telegramEndpoint
+    });
+
+    // Retry logic untuk network errors
+    if (retries > 0 && (error.message === 'Failed to fetch' || error.message === 'NetworkError')) {
+      console.warn(`[Telegram] Retry attempt ${3 - retries}...`);
+      return new Promise(resolve => {
+        setTimeout(() => {
+          sendTelegram(msg, analytics, retries - 1).then(resolve);
+        }, 500);
+      });
+    }
+
+    return {
+      ok: false,
+      error: String(error)
+    };
+  });
+}
+
+function trackClick(label) {
+  sendTelegram(
+    '🔗 <b>Klik: ' + escapeHtml(label) + '</b>\n' +
+    '📱 <b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
+    '🖥️ <b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
+    '🕐 <b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
+    '🔗 <b>URL:</b> ' + escapeHtml(window.location.href),
+    buildAnalyticsEvent('social_click', label)
+  );
+}
+
+function handleWAClick(e, label) {
+  e.preventDefault();
+
+  showToast('💬 Membuka WhatsApp...');
+
+  sendTelegram(
+    '<b>Ada yang mau pesan!</b>\n\n' +
+    '<b>Tombol:</b> ' + escapeHtml(label) + '\n' +
+    '<b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
+    '<b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
+    '<b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
+    '<b>URL:</b> ' + escapeHtml(window.location.href),
+    buildAnalyticsEvent('order_intent', label)
+  );
+
+  setTimeout(() => {
+    window.location.href = CONFIG.waCatalog;
+  }, 350);
+}
+
+function orderMenu(menuName) {
+  showToast('🛒 Memesan ' + menuName + '...');
+
+  const msg = encodeURIComponent('Halo, saya ingin memesan: ' + menuName);
+
+  sendTelegram(
+    '🍽️ <b>Klik Menu: ' + escapeHtml(menuName) + '</b>\n\n' +
+    '📱 <b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
+    '🖥️ <b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
+    '🕐 <b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
+    '🔗 <b>URL:</b> ' + escapeHtml(window.location.href),
+    buildAnalyticsEvent('menu_click', menuName)
+  );
+
+  setTimeout(() => {
+    window.open('https://wa.me/' + CONFIG.waNumber + '?text=' + msg, '_blank');
+  }, 350);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+(function notifyVisitor() {
+  if (sessionStorage.getItem('tg_notified')) return;
+
+  sendTelegram(
+    '<b>Pengunjung Baru!</b>\n\n' +
+    '<b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
+    '<b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
+    '<b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
+    '<b>URL:</b> ' + escapeHtml(window.location.href),
+    buildAnalyticsEvent('visitor')
+  ).then(result => {
+    if (result.ok) {
+      sessionStorage.setItem('tg_notified', '1');
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
