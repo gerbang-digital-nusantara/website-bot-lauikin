@@ -910,12 +910,12 @@ function detectSourceDetail() {
 function detectDevice() {
   const ua = navigator.userAgent || '';
 
-  if (/iPad/i.test(ua)) return '📱 iPad';
-  if (/iPhone/i.test(ua)) return '🍎 iPhone';
-  if (/Android/i.test(ua)) return '🤖 Android';
-  if (/Windows/i.test(ua)) return '💻 Windows PC';
-  if (/Mac/i.test(ua)) return '🖥️ Mac';
-  if (/Linux/i.test(ua)) return '🐧 Linux';
+  if (/iPad/i.test(ua)) return 'iPad';
+  if (/iPhone/i.test(ua)) return 'iPhone';
+  if (/Android/i.test(ua)) return 'Android';
+  if (/Windows/i.test(ua)) return 'Windows PC';
+  if (/Mac/i.test(ua)) return 'Mac';
+  if (/Linux/i.test(ua)) return 'Linux';
 
   return '❓ Unknown';
 }
