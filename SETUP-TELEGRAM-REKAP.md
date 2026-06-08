@@ -60,8 +60,10 @@ Blobs sebagai data rekap chat:
 - Tanggal rekap diambil dari baris `<b>Waktu:</b> ... WIB` yang ada di pesan
   Telegram, bukan dari waktu server saja.
 
-Rekap utama sekarang membaca data chat Telegram tersimpan. Analytics lama tetap
-ada untuk pembanding lewat `/cekdata`.
+Rekap utama sekarang membaca data chat Telegram tersimpan. Kalau ringkasan chat
+belum lengkap, bot otomatis fallback ke ringkasan analytics harian agar data
+`Pengunjung Baru` dan `Klik Mau Pesan` tetap kebaca tanpa scan besar. Analytics
+lama tetap ada untuk pembanding lewat `/cekdata`.
 
 ## 5. Gunakan bot
 

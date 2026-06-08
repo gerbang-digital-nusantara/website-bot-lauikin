@@ -1,7 +1,8 @@
 const {
   getAnalyticsDiagnostics,
   getDateRange,
-  getPeriodRange
+  getPeriodRange,
+  getSummaryForRange
 } = require('../lib/analytics');
 const {
   getChatRekapDiagnostics,
@@ -286,6 +287,97 @@ function formatWib(date) {
   }).format(date);
 }
 
+function sumTotals(summary) {
+  return Object.values(summary?.totals || {})
+    .reduce((total, value) => total + Number(value || 0), 0);
+}
+
+function clonePlain(value, fallback) {
+  return JSON.parse(JSON.stringify(value || fallback));
+}
+
+function chooseTypeBucket(chatSummary, analyticsSummary, type) {
+  const chatTotal = Number(chatSummary?.totals?.[type] || 0);
+  const analyticsTotal = Number(analyticsSummary?.totals?.[type] || 0);
+
+  if (analyticsTotal > chatTotal) {
+    return {
+      total: analyticsTotal,
+      sourceCounts: clonePlain(analyticsSummary?.sources?.[type], {}),
+      labelCounts: clonePlain(analyticsSummary?.labels?.[type], {})
+    };
+  }
+
+  return {
+    total: chatTotal,
+    sourceCounts: clonePlain(chatSummary?.sources?.[type], {}),
+    labelCounts: clonePlain(chatSummary?.labels?.[type], {})
+  };
+}
+
+function buildReliableSummary(chatSummary, analyticsSummary) {
+  const summary = {
+    totals: {},
+    sources: {
+      visitor: {},
+      order_intent: {},
+      menu_click: {},
+      social_click: {}
+    },
+    labels: {
+      order_intent: {},
+      menu_click: {},
+      social_click: {}
+    },
+    uniqueVisitorIds: {}
+  };
+  const eventTypes = ['visitor', 'order_intent', 'menu_click', 'social_click'];
+
+  for (const type of eventTypes) {
+    const bucket = chooseTypeBucket(chatSummary, analyticsSummary, type);
+    summary.totals[type] = bucket.total;
+    summary.sources[type] = bucket.sourceCounts;
+    if (summary.labels[type]) {
+      summary.labels[type] = bucket.labelCounts;
+    }
+  }
+
+  const chatUnique = chatSummary?.uniqueVisitorIds || {};
+  const analyticsUnique = analyticsSummary?.uniqueVisitorIds || {};
+  summary.uniqueVisitorIds = Object.keys(analyticsUnique).length > Object.keys(chatUnique).length
+    ? clonePlain(analyticsUnique, {})
+    : clonePlain(chatUnique, {});
+
+  return summary;
+}
+
+function getReportSource(chatResult, analyticsResult, finalSummary) {
+  const chatTotal = sumTotals(chatResult.summary);
+  const analyticsTotal = sumTotals(analyticsResult.summary);
+  const finalTotal = sumTotals(finalSummary);
+
+  if (finalTotal === 0) return 'empty';
+  if (analyticsTotal > chatTotal) return 'hybrid_analytics_summaries';
+  if (chatResult.source === 'chat_events') return 'chat_events';
+  return 'chat_summaries';
+}
+
+function buildSourceNote(source) {
+  if (source === 'hybrid_analytics_summaries') {
+    return '<i>Data memakai ringkasan chat + fallback analytics harian, jadi tetap cepat dan tidak kosong kalau chat-summary belum lengkap.</i>';
+  }
+  if (source === 'chat_events') {
+    return '<i>Data dihitung dari pesan chat Telegram tersimpan untuk tanggal ini.</i>';
+  }
+  if (source === 'chat_summaries') {
+    return '<i>Data dihitung dari ringkasan chat harian agar rekap cepat.</i>';
+  }
+  if (source === 'events') {
+    return '<i>Data dibaca dari event mentah karena summary harian belum lengkap.</i>';
+  }
+  return '<i>Belum ada data tersimpan untuk periode ini.</i>';
+}
+
 function buildReport(summary, range, source = 'summaries') {
   const totals = summary.totals || {};
   const visitors = totals.visitor || 0;
@@ -314,14 +406,30 @@ function buildReport(summary, range, source = 'summaries') {
     `<b>Klik menu produk: ${menuClicks}</b>`,
     `<b>Klik tautan sosial: ${socialClicks}</b>`,
     '',
-    source === 'chat_events'
-      ? '<i>Data dihitung dari pesan chat Telegram tersimpan untuk tanggal ini.</i>'
-      : source === 'chat_summaries'
-        ? '<i>Data dihitung dari ringkasan chat harian agar rekap cepat.</i>'
-        : source === 'events'
-          ? '<i>Data dibaca dari event mentah karena summary harian belum lengkap.</i>'
-          : '<i>Data dihitung dari ringkasan harian agar rekap cepat.</i>'
+    buildSourceNote(source)
   ].join('\n');
+}
+
+async function getReliableRekapForRange(range) {
+  const [chatResult, analyticsResult] = await Promise.all([
+    getChatRekapForRange(range, { fallbackToMessages: false }),
+    getSummaryForRange(range, { fallbackToEvents: false })
+  ]);
+  let summary = buildReliableSummary(chatResult.summary, analyticsResult.summary);
+  let source = getReportSource(chatResult, analyticsResult, summary);
+
+  if (sumTotals(summary) > 0) {
+    return { summary, range, source };
+  }
+
+  const [chatFallback, analyticsFallback] = await Promise.all([
+    getChatRekapForRange(range, { fallbackToMessages: true }),
+    getSummaryForRange(range, { fallbackToEvents: true })
+  ]);
+  summary = buildReliableSummary(chatFallback.summary, analyticsFallback.summary);
+  source = getReportSource(chatFallback, analyticsFallback, summary);
+
+  return { summary, range, source };
 }
 
 async function sendReport(chatId, request) {
@@ -344,7 +452,7 @@ async function sendReport(chatId, request) {
   const targetRange = request.kind === 'range'
     ? request.range
     : getPeriodRange(request.period);
-  const { summary, range, source } = await getChatRekapForRange(targetRange);
+  const { summary, range, source } = await getReliableRekapForRange(targetRange);
   done = true;
 
   return sendTelegramMessage(chatId, buildReport(summary, range, source), {
