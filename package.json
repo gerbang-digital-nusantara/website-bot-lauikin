@@ -1,11 +1,9 @@
 {
-  "name": "laukin-links",
-  "version": "1.0.0",
+  "name": "laukin-links-visitor",
+  "version": "2.0.0",
   "private": true,
-  "dependencies": {
-    "@netlify/blobs": "10.7.9"
-  },
-  "devDependencies": {
-    "esbuild": "^0.28.0"
+  "description": "Website visitor Lauk.In yang mengirim data analytics ke web admin terpisah.",
+  "scripts": {
+    "check:functions": "node --check netlify/functions/track-event.js"
   }
 }

@@ -381,6 +381,7 @@
   }
 
   .product-card {
+    cursor: pointer;
     min-width: 0;
     border-radius: 8px;
     overflow: hidden;
@@ -647,47 +648,47 @@
 <div class="section-title">Menu Lauk.in</div>
 
 <div class="product-grid">
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 1')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 1')">
     <img src="Lauk.in%20Asset/Menu/1.png" alt="Menu Lauk.in 1" loading="lazy">
     <span class="menu-number">1</span>
   </div>
 
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 2')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 2')">
     <img src="Lauk.in%20Asset/Menu/2.png" alt="Menu Lauk.in 2" loading="lazy">
     <span class="menu-number">2</span>
   </div>
 
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 3')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 3')">
     <img src="Lauk.in%20Asset/Menu/3.png" alt="Menu Lauk.in 3" loading="lazy">
     <span class="menu-number">3</span>
   </div>
 
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 4')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 4')">
     <img src="Lauk.in%20Asset/Menu/4.png" alt="Menu Lauk.in 4" loading="lazy">
     <span class="menu-number">4</span>
   </div>
 
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 5')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 5')">
     <img src="Lauk.in%20Asset/Menu/5.png" alt="Menu Lauk.in 5" loading="lazy">
     <span class="menu-number">5</span>
   </div>
 
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 6')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 6')">
     <img src="Lauk.in%20Asset/Menu/6.png" alt="Menu Lauk.in 6" loading="lazy">
     <span class="menu-number">6</span>
   </div>
 
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 7')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 7')">
     <img src="Lauk.in%20Asset/Menu/7.png" alt="Menu Lauk.in 7" loading="lazy">
     <span class="menu-number">7</span>
   </div>
 
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 8')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 8')">
     <img src="Lauk.in%20Asset/Menu/8.png" alt="Menu Lauk.in 8" loading="lazy">
     <span class="menu-number">8</span>
   </div>
 
-  <div class="product-card">
+  <div class="product-card" role="button" tabindex="0" onclick="orderMenu('Menu Lauk.in 9')" onkeydown="handleMenuKey(event, 'Menu Lauk.in 9')">
     <img src="Lauk.in%20Asset/Menu/9.png" alt="Menu Lauk.in 9" loading="lazy">
     <span class="menu-number">9</span>
   </div>
@@ -735,7 +736,7 @@
 const CONFIG = {
   waNumber: '6285199204460',
   waCatalog: 'https://wa.me/c/6285199204460',
-  telegramEndpoint: '/.netlify/functions/send-telegram'
+  trackingEndpoint: '/.netlify/functions/track-event'
 };
 
 let toastTimer;
@@ -754,7 +755,7 @@ function getVisitorId() {
     return visitorId;
   } catch {
     fallbackVisitorId ||= (
-      'session-' + Date.now() + '-' + Math.random().toString(36).slice(2)
+      'visitor-' + Date.now() + '-' + Math.random().toString(36).slice(2)
     );
     return fallbackVisitorId;
   }
@@ -938,29 +939,31 @@ function buildAnalyticsEvent(type, label = '') {
     type,
     label,
     visitorId: getVisitorId(),
+    sessionId: getSessionId(),
     source: detectPlatform(),
     sourceDetail: detectSourceDetail(),
     device: detectDevice(),
     url: window.location.href,
+    pageTitle: document.title,
+    referrer: document.referrer || '',
+    viewport: window.innerWidth + 'x' + window.innerHeight,
+    language: navigator.language || '',
     timestamp: new Date().toISOString(),
     wibTime: getWIBTime()
   };
 }
 
-function makeTelegramPayload(msg, analytics = null) {
-  return JSON.stringify({
-    message: msg,
-    analytics
-  });
+function makeTrackingPayload(analytics) {
+  return JSON.stringify({ analytics });
 }
 
-function sendTelegram(msg, analytics = null, retries = 2) {
-  return fetch(CONFIG.telegramEndpoint, {
+function sendTrackingEvent(analytics, retries = 2) {
+  return fetch(CONFIG.trackingEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: makeTelegramPayload(msg, analytics),
+    body: makeTrackingPayload(analytics),
     mode: 'cors',
     credentials: 'omit',
     keepalive: true
@@ -980,7 +983,7 @@ function sendTelegram(msg, analytics = null, retries = 2) {
     }
 
     if (!response.ok || !data.ok) {
-      console.error('[Telegram Error]', {
+      console.error('[Tracking Error]', {
         status: response.status,
         statusText: response.statusText,
         response: data
@@ -990,18 +993,16 @@ function sendTelegram(msg, analytics = null, retries = 2) {
     return data;
   })
   .catch(error => {
-    console.error('[Telegram Fetch Error]', {
+    console.error('[Tracking Fetch Error]', {
       message: error.message,
       type: error.name,
-      endpoint: CONFIG.telegramEndpoint
+      endpoint: CONFIG.trackingEndpoint
     });
 
-    // Retry logic untuk network errors
     if (retries > 0 && (error.message === 'Failed to fetch' || error.message === 'NetworkError')) {
-      console.warn(`[Telegram] Retry attempt ${3 - retries}...`);
       return new Promise(resolve => {
         setTimeout(() => {
-          sendTelegram(msg, analytics, retries - 1).then(resolve);
+          sendTrackingEvent(analytics, retries - 1).then(resolve);
         }, 500);
       });
     }
@@ -1013,44 +1014,28 @@ function sendTelegram(msg, analytics = null, retries = 2) {
   });
 }
 
-function sendTelegramBeacon(msg, analytics = null) {
-  const payload = makeTelegramPayload(msg, analytics);
+function sendTrackingBeacon(analytics) {
+  const payload = makeTrackingPayload(analytics);
 
   if (navigator.sendBeacon && typeof Blob === 'function') {
     const blob = new Blob([payload], { type: 'application/json' });
-    if (navigator.sendBeacon(CONFIG.telegramEndpoint, blob)) {
+    if (navigator.sendBeacon(CONFIG.trackingEndpoint, blob)) {
       return Promise.resolve({ ok: true, beacon: true });
     }
   }
 
-  return sendTelegram(msg, analytics, 0);
+  return sendTrackingEvent(analytics, 0);
 }
 
 function trackClick(label) {
-  sendTelegramBeacon(
-    '<b>Klik: ' + escapeHtml(label) + '</b>\n' +
-    '<b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
-    '<b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
-    '<b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
-    '<b>URL:</b> ' + escapeHtml(window.location.href),
-    buildAnalyticsEvent('social_click', label)
-  );
+  sendTrackingBeacon(buildAnalyticsEvent('social_click', label));
 }
 
 function handleWAClick(e, label) {
   e.preventDefault();
 
   showToast('💬 Membuka WhatsApp...');
-
-  sendTelegramBeacon(
-    '<b>Ada yang mau pesan!</b>\n\n' +
-    '<b>Tombol:</b> ' + escapeHtml(label) + '\n' +
-    '<b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
-    '<b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
-    '<b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
-    '<b>URL:</b> ' + escapeHtml(window.location.href),
-    buildAnalyticsEvent('order_intent', label)
-  );
+  sendTrackingBeacon(buildAnalyticsEvent('order_intent', label));
 
   setTimeout(() => {
     window.location.href = CONFIG.waCatalog;
@@ -1061,41 +1046,26 @@ function orderMenu(menuName) {
   showToast('🛒 Memesan ' + menuName + '...');
 
   const msg = encodeURIComponent('Halo, saya ingin memesan: ' + menuName);
-
-  sendTelegramBeacon(
-    '<b>Klik Menu: ' + escapeHtml(menuName) + '</b>\n\n' +
-    '<b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
-    '<b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
-    '<b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
-    '<b>URL:</b> ' + escapeHtml(window.location.href),
-    buildAnalyticsEvent('menu_click', menuName)
-  );
+  sendTrackingBeacon(buildAnalyticsEvent('menu_click', menuName));
 
   setTimeout(() => {
     window.open('https://wa.me/' + CONFIG.waNumber + '?text=' + msg, '_blank');
   }, 350);
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+function handleMenuKey(event, menuName) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    orderMenu(menuName);
+  }
 }
 
 (function notifyVisitor() {
-  if (sessionStorage.getItem('tg_notified')) return;
+  if (sessionStorage.getItem('laukin_visit_tracked')) return;
 
-  sendTelegram(
-    '<b>Pengunjung Baru!</b>\n\n' +
-    '<b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
-    '<b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
-    '<b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
-    '<b>URL:</b> ' + escapeHtml(window.location.href),
-    buildAnalyticsEvent('visitor')
-  ).then(result => {
+  sendTrackingEvent(buildAnalyticsEvent('visitor')).then(result => {
     if (result.ok) {
-      sessionStorage.setItem('tg_notified', '1');
+      sessionStorage.setItem('laukin_visit_tracked', '1');
     }
   });
 })();
