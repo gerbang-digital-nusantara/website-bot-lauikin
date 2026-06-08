@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
 <title>Links | Lauk.In</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,6 +34,10 @@
     box-sizing: border-box;
   }
 
+  html {
+    background: #ffffff;
+  }
+
   body {
     font-family: 'DM Sans', sans-serif;
     background-color: var(--blue);
@@ -42,6 +48,7 @@
     background-position: 0 0, 59px 0;
     color: var(--brown);
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
   }
 
@@ -493,10 +500,25 @@
 
   .footer {
     text-align: center;
-    padding: 24px 16px 48px;
+    padding: 18px 16px calc(36px + env(safe-area-inset-bottom));
     font-size: 11px;
     color: var(--gray);
     animation: fadeUp 0.5s ease 0.7s both;
+  }
+
+  .footer-mark {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    margin: 0 auto 8px;
+    color: var(--blue-dark);
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .footer-mark span {
+    color: var(--yellow-dark);
   }
 
   .footer a {
@@ -542,8 +564,13 @@
   }
 
   @media (max-width: 560px) {
+    body {
+      background: #ffffff;
+    }
+
     .page-shell {
       overflow-x: hidden;
+      min-height: 100dvh;
     }
 
     .product-grid,
@@ -695,6 +722,8 @@
 </div>
 
 <div class="footer">
+  <div class="footer-mark">lauk.<span>in</span></div>
+  <br>
   © 2026 lauk.in · Semua hak dilindungi
 </div>
 
@@ -711,6 +740,7 @@ const CONFIG = {
 
 let toastTimer;
 let fallbackVisitorId;
+let fallbackSessionId;
 
 function getVisitorId() {
   const storageKey = 'laukin_visitor_id';
@@ -718,9 +748,7 @@ function getVisitorId() {
   try {
     let visitorId = localStorage.getItem(storageKey);
     if (!visitorId) {
-      visitorId = crypto.randomUUID
-        ? crypto.randomUUID()
-        : Date.now() + '-' + Math.random().toString(36).slice(2);
+      visitorId = makeRandomId();
       localStorage.setItem(storageKey, visitorId);
     }
     return visitorId;
@@ -730,6 +758,54 @@ function getVisitorId() {
     );
     return fallbackVisitorId;
   }
+}
+
+function getSessionId() {
+  const storageKey = 'laukin_session_id';
+
+  try {
+    let sessionId = sessionStorage.getItem(storageKey);
+    if (!sessionId) {
+      sessionId = makeRandomId();
+      sessionStorage.setItem(storageKey, sessionId);
+    }
+    return sessionId;
+  } catch {
+    fallbackSessionId ||= makeRandomId();
+    return fallbackSessionId;
+  }
+}
+
+function makeRandomId() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return window.crypto.randomUUID();
+  }
+
+  return Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+
+function slugifyEventPart(value) {
+  return String(value || 'event')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 48)
+    || 'event';
+}
+
+function makeAnalyticsEventId(type, label = '') {
+  const typePart = slugifyEventPart(type);
+
+  if (type === 'visitor') {
+    return typePart + ':' + getSessionId();
+  }
+
+  return [
+    typePart,
+    Date.now(),
+    makeRandomId(),
+    slugifyEventPart(label)
+  ].join(':');
 }
 
 function showToast(msg) {
@@ -748,6 +824,29 @@ function detectPlatform() {
   const ref = document.referrer || '';
   const params = new URLSearchParams(window.location.search);
   const utmSource = params.get('utm_source');
+  const utmMedium = params.get('utm_medium');
+  const refLower = ref.toLowerCase();
+  const utmSourceLower = String(utmSource || '').toLowerCase();
+  const utmMediumLower = String(utmMedium || '').toLowerCase();
+
+  if (
+    params.has('ttclid') ||
+    /TikTok|musical_ly|Aweme|Bytedance/i.test(ua) ||
+    utmSourceLower.includes('tiktok') ||
+    utmSourceLower === 'tt' ||
+    utmMediumLower.includes('tiktok') ||
+    refLower.includes('tiktok')
+  ) {
+    return 'TikTok';
+  }
+
+  if (utmSourceLower.includes('instagram') || utmSourceLower === 'ig') {
+    return 'Instagram Campaign';
+  }
+
+  if (utmSourceLower.includes('facebook') || utmSourceLower === 'fb') {
+    return 'Facebook Campaign';
+  }
 
   if (utmSource) {
     return 'Campaign: ' + utmSource.slice(0, 60);
@@ -778,6 +877,35 @@ function detectPlatform() {
   }
 }
 
+function detectSourceDetail() {
+  const params = new URLSearchParams(window.location.search);
+  const detailKeys = [
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_content',
+    'ttclid',
+    'fbclid',
+    'gclid'
+  ];
+  const details = [];
+
+  detailKeys.forEach(key => {
+    const value = params.get(key);
+    if (value) details.push(key + '=' + value.slice(0, 80));
+  });
+
+  if (document.referrer) {
+    try {
+      details.push('ref=' + new URL(document.referrer).hostname);
+    } catch {
+      details.push('ref=unknown');
+    }
+  }
+
+  return details.join(' | ');
+}
+
 function detectDevice() {
   const ua = navigator.userAgent || '';
 
@@ -806,10 +934,12 @@ function getWIBTime() {
 
 function buildAnalyticsEvent(type, label = '') {
   return {
+    eventId: makeAnalyticsEventId(type, label),
     type,
     label,
     visitorId: getVisitorId(),
     source: detectPlatform(),
+    sourceDetail: detectSourceDetail(),
     device: detectDevice(),
     url: window.location.href
   };
@@ -879,11 +1009,11 @@ function sendTelegram(msg, analytics = null, retries = 2) {
 
 function trackClick(label) {
   sendTelegram(
-    '🔗 <b>Klik: ' + escapeHtml(label) + '</b>\n' +
-    '📱 <b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
-    '🖥️ <b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
-    '🕐 <b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
-    '🔗 <b>URL:</b> ' + escapeHtml(window.location.href),
+    '<b>Klik: ' + escapeHtml(label) + '</b>\n' +
+    '<b>Platform:</b> ' + escapeHtml(detectPlatform()) + '\n' +
+    '<b>Device:</b> ' + escapeHtml(detectDevice()) + '\n' +
+    '<b>Waktu:</b> ' + escapeHtml(getWIBTime()) + '\n' +
+    '<b>URL:</b> ' + escapeHtml(window.location.href),
     buildAnalyticsEvent('social_click', label)
   );
 }

@@ -58,9 +58,13 @@ Perintah yang tersedia:
 /mingguini
 /bulanini
 /rekap
+/rekap 2026-06-09
+/rekap 2026-06-01 2026-06-09
 ```
 
-Bot juga memahami kalimat seperti `tolong rekap minggu ini`.
+Bot juga memahami kalimat seperti `tolong rekap minggu ini`,
+`tolong rekap 8 juni 2026`, atau `tolong rekap 8-9 juni 2026`.
+Range tanggal custom dibatasi maksimal 62 hari agar rekap tetap cepat.
 
 Data mulai dihitung setelah versi analytics ini dideploy. Pesan lama yang
 sudah ada di Telegram tidak dapat dihitung mundur.
