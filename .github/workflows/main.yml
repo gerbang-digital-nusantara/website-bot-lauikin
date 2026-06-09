@@ -13,6 +13,7 @@ concurrency:
 env:
   IMAGE_NAME: ghcr.io/gerbang-digital-nusantara/laukin-web:latest
   DEPLOY_PATH: /home/app/laukin-web
+  ASSET_PATH: /home/app/laukin-images
 
 jobs:
   deploy:
@@ -21,6 +22,15 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Pack image assets
+        run: |
+          if [ -d "Lauk.in Asset" ]; then
+            tar -czf laukin-assets.tar.gz "Lauk.in Asset"
+          else
+            echo "Folder 'Lauk.in Asset' tidak ditemukan, skip packing assets."
+            tar -czf laukin-assets.tar.gz --files-from /dev/null
+          fi
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -40,7 +50,7 @@ jobs:
           host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          source: "docker-compose.yml,.env.example"
+          source: "docker-compose.yml,.env.example,laukin-assets.tar.gz"
           target: ${{ env.DEPLOY_PATH }}/
 
       - name: Deploy to VPS
@@ -52,11 +62,28 @@ jobs:
           script: |
             set -e
             mkdir -p "${{ env.DEPLOY_PATH }}"
+            mkdir -p "${{ env.ASSET_PATH }}"
             cd "${{ env.DEPLOY_PATH }}"
 
             if [ ! -f .env ]; then
               cp .env.example .env
               echo "File .env belum ada, jadi dibuat dari .env.example. Isi ADMIN_COLLECT_ENDPOINT dan ADMIN_INGEST_SECRET di VPS agar tracking aktif."
+            fi
+
+            if [ -f laukin-assets.tar.gz ]; then
+              rm -rf /tmp/laukin-assets
+              mkdir -p /tmp/laukin-assets
+              tar -xzf laukin-assets.tar.gz -C /tmp/laukin-assets
+
+              if [ -d "/tmp/laukin-assets/Lauk.in Asset" ]; then
+                find "${{ env.ASSET_PATH }}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+                cp -a "/tmp/laukin-assets/Lauk.in Asset/." "${{ env.ASSET_PATH }}/"
+                echo "Assets disinkronkan ke ${{ env.ASSET_PATH }}"
+              else
+                echo "Archive assets kosong/tidak ada folder Lauk.in Asset, skip sync assets."
+              fi
+
+              rm -rf /tmp/laukin-assets laukin-assets.tar.gz
             fi
 
             echo "${{ secrets.PACKAGE_TOKEN }}" | docker login ghcr.io -u "${{ secrets.PACKAGE_USERNAME }}" --password-stdin

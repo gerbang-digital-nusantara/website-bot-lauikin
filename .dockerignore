@@ -17,3 +17,6 @@ pnpm-debug.log*
 Thumbs.db
 *.log
 README-DEPLOY-VPS.md
+
+# Image assets are stored outside Docker image and mounted from VPS
+Lauk.in Asset

@@ -1,12 +1,5 @@
 # Lauk.In visitor web - production image
-# Static website + tracking endpoint compatible with Netlify Function path.
-FROM node:22-alpine AS deps
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --omit=dev
-
+# App code only. Image assets are mounted from /home/app/laukin-images on VPS.
 FROM node:22-alpine
 
 WORKDIR /app
@@ -14,7 +7,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4099
 
-COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
+RUN npm ci --omit=dev
+
 COPY . .
 
 EXPOSE 4099

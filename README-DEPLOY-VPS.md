@@ -76,3 +76,21 @@ Aktifkan SSL:
 ```bash
 certbot --nginx -d web.domainkamu.com
 ```
+
+
+## Struktur folder di VPS
+
+Project ini memakai struktur:
+
+```text
+/home/app/laukin-web      # docker-compose.yml dan .env
+/home/app/laukin-images   # semua file gambar dari folder Lauk.in Asset
+```
+
+Docker image hanya berisi kode aplikasi. Gambar tidak dimasukkan ke image, tetapi di-mount lewat `docker-compose.yml` ke:
+
+```text
+/app/Lauk.in Asset
+```
+
+Jadi URL lama seperti `/Lauk.in Asset/Menu/1.png` tetap jalan.
