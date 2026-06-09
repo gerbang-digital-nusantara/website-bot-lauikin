@@ -1,9 +1,14 @@
 {
-  "name": "laukin-links-visitor",
-  "version": "2.0.0",
+  "name": "laukin-web",
+  "version": "2.1.0",
   "private": true,
-  "description": "Website visitor Lauk.In yang mengirim data analytics ke web admin terpisah.",
+  "description": "Website visitor Lauk.In untuk VPS/Docker dan Netlify, dengan tracking analytics ke web admin.",
   "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check netlify/functions/track-event.js",
     "check:functions": "node --check netlify/functions/track-event.js"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

@@ -1,27 +1,33 @@
 # Lauk.In Visitor Site
 
-Project ini adalah web customer/link bio. Versi ini tidak mengirim data ke Telegram lagi.
+Project ini adalah web customer/link bio Lauk.In.
 
-Data dikirim ke web admin melalui:
+Event analytics dari browser dikirim ke endpoint lokal:
 
 ```text
 /.netlify/functions/track-event
 ```
 
-Function tersebut meneruskan event ke:
+Endpoint tersebut akan meneruskan data ke web admin melalui environment variable:
 
 ```text
 ADMIN_COLLECT_ENDPOINT
+ADMIN_INGEST_SECRET
 ```
 
-## Environment Variables Netlify
+## Bisa jalan di dua mode
+
+1. **Netlify** memakai `netlify/functions/track-event.js`.
+2. **VPS Docker** memakai `server.js`, tetapi path endpoint tetap sama: `/.netlify/functions/track-event`.
+
+## Environment Variables
 
 ```text
 ADMIN_COLLECT_ENDPOINT=https://NAMA-WEB-ADMIN.netlify.app/.netlify/functions/collect-event
 ADMIN_INGEST_SECRET=secret_random_yang_sama_dengan_admin
 ```
 
-Setelah env berubah, deploy ulang.
+Untuk VPS Docker, lihat file `README-DEPLOY-VPS.md`.
 
 ## Event yang dikirim
 

@@ -42,12 +42,25 @@ function getClientIp(event) {
   ).split(',')[0].trim();
 }
 
+function extractServerGeo(requestEvent) {
+  const h = requestEvent.headers;
+  return {
+    country: h['x-nf-geo-country'] || '',
+    city: h['x-nf-geo-city'] || '',
+    region: h['x-nf-geo-region'] || '',
+    latitude: h['x-nf-geo-latitude'] || '',
+    longitude: h['x-nf-geo-longitude'] || '',
+    ip: getClientIp(requestEvent)
+  };
+}
+
 function normalizeEvent(raw, requestEvent) {
   const source = raw && typeof raw === 'object'
     ? (raw.analytics && typeof raw.analytics === 'object' ? raw.analytics : raw)
     : {};
 
-  const type = ALLOWED_TYPES.has(source.type) ? source.type : '';
+  const rawType = source.type === 'menu_view' ? 'menu_click' : source.type;
+  const type = ALLOWED_TYPES.has(rawType) ? rawType : '';
   if (!type) {
     return null;
   }
@@ -161,7 +174,8 @@ exports.handler = async (event) => {
   try {
     const adminResult = await forwardToAdmin({
       sourceProject: 'laukin-links-visitor',
-      event: analyticsEvent
+      event: analyticsEvent,
+      _serverGeo: extractServerGeo(event)
     });
 
     if (!adminResult.ok) {

@@ -1,0 +1,66 @@
+name: Deploy LaukIn Web
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-laukin-web
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: ghcr.io/gerbang-digital-nusantara/laukin-web:latest
+  DEPLOY_PATH: /home/app/laukin-web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.PACKAGE_USERNAME }}
+          password: ${{ secrets.PACKAGE_TOKEN }}
+
+      - name: Build and Push Image
+        run: |
+          docker build -t "$IMAGE_NAME" .
+          docker push "$IMAGE_NAME"
+
+      - name: Copy deploy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "docker-compose.yml,.env.example"
+          target: ${{ env.DEPLOY_PATH }}/
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            set -e
+            mkdir -p "${{ env.DEPLOY_PATH }}"
+            cd "${{ env.DEPLOY_PATH }}"
+
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              echo "File .env belum ada, jadi dibuat dari .env.example. Isi ADMIN_COLLECT_ENDPOINT dan ADMIN_INGEST_SECRET di VPS agar tracking aktif."
+            fi
+
+            echo "${{ secrets.PACKAGE_TOKEN }}" | docker login ghcr.io -u "${{ secrets.PACKAGE_USERNAME }}" --password-stdin
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f
+            docker compose ps
