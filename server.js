@@ -68,6 +68,10 @@ function getRequestBody(req) {
 
 function getClientIp(req) {
   return (
+    req.headers['x-nf-client-connection-ip'] ||
+    req.headers['cf-connecting-ip'] ||
+    req.headers['true-client-ip'] ||
+    req.headers['x-real-ip'] ||
     req.headers['x-forwarded-for'] ||
     req.socket.remoteAddress ||
     ''

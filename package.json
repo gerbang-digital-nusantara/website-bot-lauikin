@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js && node --check netlify/functions/track-event.js",
-    "check:functions": "node --check netlify/functions/track-event.js"
+    "check:functions": "node --check netlify/functions/track-event.js",
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": ">=18"

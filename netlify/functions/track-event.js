@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const net = require('node:net');
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -33,23 +34,93 @@ function hashValue(value) {
   return crypto.createHash('sha256').update(source).digest('hex').slice(0, 32);
 }
 
+function firstHeader(headers, names) {
+  const source = headers || {};
+
+  for (const name of names) {
+    const value = source[name] ?? source[name.toLowerCase()] ?? source[name.toUpperCase()];
+    if (value !== undefined && value !== null && String(value).trim()) {
+      return String(value).trim();
+    }
+  }
+
+  return '';
+}
+
+function normalizeIp(value) {
+  let ip = String(value || '').split(',')[0].trim();
+  if (!ip) return '';
+
+  if (ip.startsWith('[')) {
+    const closingBracket = ip.indexOf(']');
+    if (closingBracket > 0) ip = ip.slice(1, closingBracket);
+  } else if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(ip)) {
+    ip = ip.replace(/:\d+$/, '');
+  }
+
+  if (ip.toLowerCase().startsWith('::ffff:')) {
+    const ipv4 = ip.slice(7);
+    if (net.isIP(ipv4) === 4) ip = ipv4;
+  }
+
+  return net.isIP(ip) ? ip : '';
+}
+
+function decodeHeader(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+
+  try {
+    return decodeURIComponent(text.replace(/\+/g, '%20'));
+  } catch {
+    return text;
+  }
+}
+
 function getClientIp(event) {
-  return (
-    event.headers['x-nf-client-connection-ip'] ||
-    event.headers['client-ip'] ||
-    event.headers['x-forwarded-for'] ||
-    ''
-  ).split(',')[0].trim();
+  return normalizeIp(firstHeader(event.headers, [
+    'x-nf-client-connection-ip',
+    'cf-connecting-ip',
+    'true-client-ip',
+    'x-real-ip',
+    'client-ip',
+    'x-forwarded-for'
+  ]));
 }
 
 function extractServerGeo(requestEvent) {
   const h = requestEvent.headers;
   return {
-    country: h['x-nf-geo-country'] || '',
-    city: h['x-nf-geo-city'] || '',
-    region: h['x-nf-geo-region'] || '',
-    latitude: h['x-nf-geo-latitude'] || '',
-    longitude: h['x-nf-geo-longitude'] || '',
+    country: firstHeader(h, [
+      'x-nf-geo-country',
+      'cf-ipcountry',
+      'x-vercel-ip-country',
+      'x-geo-country'
+    ]),
+    city: decodeHeader(firstHeader(h, [
+      'x-nf-geo-city',
+      'cf-ipcity',
+      'x-vercel-ip-city',
+      'x-geo-city'
+    ])),
+    region: decodeHeader(firstHeader(h, [
+      'x-nf-geo-region',
+      'cf-region',
+      'x-vercel-ip-country-region',
+      'x-geo-region'
+    ])),
+    latitude: firstHeader(h, [
+      'x-nf-geo-latitude',
+      'cf-iplatitude',
+      'x-vercel-ip-latitude',
+      'x-geo-latitude'
+    ]),
+    longitude: firstHeader(h, [
+      'x-nf-geo-longitude',
+      'cf-iplongitude',
+      'x-vercel-ip-longitude',
+      'x-geo-longitude'
+    ]),
     ip: getClientIp(requestEvent)
   };
 }
@@ -201,4 +272,10 @@ exports.handler = async (event) => {
       error: 'Server error saat kirim ke admin'
     });
   }
+};
+
+exports._test = {
+  extractServerGeo,
+  getClientIp,
+  normalizeIp
 };
