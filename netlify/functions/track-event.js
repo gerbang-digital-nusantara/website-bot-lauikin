@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const net = require('node:net');
+const { resolveGeo } = require('../lib/ip-geo');
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -243,10 +244,11 @@ exports.handler = async (event) => {
   }
 
   try {
+    const serverGeo = await resolveGeo(extractServerGeo(event));
     const adminResult = await forwardToAdmin({
       sourceProject: 'laukin-links-visitor',
       event: analyticsEvent,
-      _serverGeo: extractServerGeo(event)
+      _serverGeo: serverGeo
     });
 
     if (!adminResult.ok) {
