@@ -1126,14 +1126,12 @@ const GeoTracker = (function () {
     loadCache();
     if (_cached !== undefined) return; // sudah ada atau sudah ditolak sebelumnya
 
-    // Minta izin setelah interaksi pertama (tidak blocking page load)
-    function onFirstInteraction() {
-      document.removeEventListener('touchstart', onFirstInteraction, true);
-      document.removeEventListener('mousedown', onFirstInteraction, true);
-      setTimeout(request, 600);
+    // Minta izin setelah halaman selesai load (~1 detik), tidak blocking
+    if (document.readyState === 'complete') {
+      setTimeout(request, 1000);
+    } else {
+      window.addEventListener('load', function () { setTimeout(request, 1000); }, { once: true });
     }
-    document.addEventListener('touchstart', onFirstInteraction, { once: true, capture: true, passive: true });
-    document.addEventListener('mousedown', onFirstInteraction, { once: true, capture: true });
   }
 
   function getGeo() {
