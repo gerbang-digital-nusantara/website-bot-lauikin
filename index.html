@@ -1044,8 +1044,113 @@ function buildAnalyticsEvent(type, label = '') {
   };
 }
 
+// ── GeoTracker: ambil lokasi GPS + reverse geocode ke kecamatan/kota/provinsi ──
+const GeoTracker = (function () {
+  const CACHE_KEY = 'laukin_client_geo';
+  let _cached = undefined; // undefined = belum dicek; null = ditolak; object = berhasil
+
+  function loadCache() {
+    if (_cached !== undefined) return;
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      _cached = raw ? JSON.parse(raw) : null;
+    } catch { _cached = null; }
+  }
+
+  function saveCache(val) {
+    _cached = val;
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(val)); } catch {}
+  }
+
+  function parseAddress(address) {
+    if (!address) return {};
+    // Kecamatan: municipality (sering "Kecamatan X") > city_district > suburb
+    let district = address.municipality || address.city_district || address.suburb || '';
+    district = district.replace(/^Kecamatan\s+/i, '').trim();
+    // Kota/Kabupaten
+    const city = address.city || address.county || address.town || '';
+    // Provinsi
+    const province = address.state || '';
+    // Kelurahan/desa
+    const village = (address.village || address.hamlet || '').replace(/^(?:Kelurahan|Desa)\s+/i, '').trim();
+    return { district, city, province, village };
+  }
+
+  async function reverseGeocode(lat, lon) {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=id`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'LaukIn/1.0 (https://lauk.in)' },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  let _promise = null;
+
+  function request() {
+    if (_promise) return _promise;
+    if (!navigator.geolocation) { saveCache(null); return Promise.resolve(null); }
+
+    _promise = new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+            const data = await reverseGeocode(lat, lon);
+            const addr = parseAddress(data.address);
+            const geo = {
+              lat: parseFloat(lat.toFixed(5)),
+              lon: parseFloat(lon.toFixed(5)),
+              accuracy: Math.round(accuracy),
+              country: ((data.address && data.address.country_code) || 'ID').toUpperCase(),
+              province: addr.province,
+              city: addr.city,
+              district: addr.district,
+              village: addr.village,
+              source: 'gps'
+            };
+            saveCache(geo);
+            resolve(geo);
+          } catch { saveCache(null); resolve(null); }
+        },
+        () => { saveCache(null); resolve(null); },
+        { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false }
+      );
+    });
+
+    return _promise;
+  }
+
+  function init() {
+    loadCache();
+    if (_cached !== undefined) return; // sudah ada atau sudah ditolak sebelumnya
+
+    // Minta izin setelah interaksi pertama (tidak blocking page load)
+    function onFirstInteraction() {
+      document.removeEventListener('touchstart', onFirstInteraction, true);
+      document.removeEventListener('mousedown', onFirstInteraction, true);
+      setTimeout(request, 600);
+    }
+    document.addEventListener('touchstart', onFirstInteraction, { once: true, capture: true, passive: true });
+    document.addEventListener('mousedown', onFirstInteraction, { once: true, capture: true });
+  }
+
+  function getGeo() {
+    loadCache();
+    return _cached || null; // null kalau belum ada / ditolak
+  }
+
+  return { init, getGeo, request };
+})();
+
+GeoTracker.init();
+
 function makeTrackingPayload(analytics) {
-  return JSON.stringify({ analytics });
+  const clientGeo = GeoTracker.getGeo();
+  const payload = { analytics };
+  if (clientGeo) payload.clientGeo = clientGeo;
+  return JSON.stringify(payload);
 }
 
 function isTrackingEnabled() {

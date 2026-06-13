@@ -245,10 +245,26 @@ exports.handler = async (event) => {
 
   try {
     const serverGeo = await resolveGeo(extractServerGeo(event));
+
+    // clientGeo dikirim dari browser (GPS + Nominatim reverse geocode)
+    const rawClientGeo = body.clientGeo && typeof body.clientGeo === 'object' ? body.clientGeo : null;
+    const clientGeo = rawClientGeo && rawClientGeo.source === 'gps' ? {
+      lat: cleanText(String(rawClientGeo.lat ?? ''), '', 20),
+      lon: cleanText(String(rawClientGeo.lon ?? ''), '', 20),
+      accuracy: Number(rawClientGeo.accuracy) || 0,
+      country: cleanText(rawClientGeo.country, '', 4).toUpperCase(),
+      province: cleanText(rawClientGeo.province, '', 80),
+      city: cleanText(rawClientGeo.city, '', 120),
+      district: cleanText(rawClientGeo.district, '', 120),
+      village: cleanText(rawClientGeo.village, '', 120),
+      source: 'gps'
+    } : null;
+
     const adminResult = await forwardToAdmin({
       sourceProject: 'laukin-links-visitor',
       event: analyticsEvent,
-      _serverGeo: serverGeo
+      _serverGeo: serverGeo,
+      ...(clientGeo ? { _clientGeo: clientGeo } : {})
     });
 
     if (!adminResult.ok) {
