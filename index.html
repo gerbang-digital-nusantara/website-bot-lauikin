@@ -510,6 +510,130 @@
   .ongkir-card-outside .oc-wa-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
   .ongkir-card-outside .oc-wa-btn svg { width: 18px; height: 18px; fill: #fff; flex-shrink: 0; }
 
+  .oc-manual-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .oc-mini-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1.5px solid #f0a860;
+    background: #fffbf4;
+    color: #b85c00;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .oc-mini-btn:hover {
+    background: #fff0d9;
+    transform: translateY(-1px);
+  }
+
+  .oc-area-list, .oc-manual-panel {
+    margin-top: 12px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #f0c890;
+  }
+
+  .oc-area-list.hidden, .oc-manual-panel.hidden { display: none; }
+
+  .area-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+
+  .area-list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 14px;
+    border-bottom: 1px solid #fdf0e0;
+    font-size: 12.5px;
+    color: #3a3a3a;
+  }
+
+  .area-list-row:last-child { border-bottom: none; }
+
+  .area-list-kec { font-weight: 500; }
+
+  .area-list-badge {
+    background: #fff3e0;
+    color: #b85c00;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .area-list-badge.free {
+    background: #e7f9ee;
+    color: #1a7e3e;
+  }
+
+  .oc-manual-panel {
+    padding: 14px;
+  }
+
+  .manual-select-wrap { display: flex; flex-direction: column; gap: 6px; }
+
+  .manual-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+  }
+
+  .manual-select {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1.5px solid #ddd;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    background: #fafafa;
+    color: #333;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .manual-select:focus { border-color: #f0a860; }
+
+  .manual-ongkir-result {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #fff8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #444;
+    border: 1px solid #f0d8b8;
+    text-align: center;
+  }
+
+  .manual-price {
+    font-weight: 800;
+    font-size: 15px;
+    color: #b85c00;
+    display: inline-block;
+    margin-top: 2px;
+  }
+
+  .manual-price.free { color: #1a7e3e; }
+
   .section-title {
     text-align: center;
     font-size: 19px;
@@ -1226,27 +1350,34 @@ const GeoTracker = (function () {
     return (s || '').replace(/^(?:Kecamatan|Kelurahan|Desa|Kota|Kabupaten)\s+/i, '').trim();
   }
 
-  function parseAddress(address) {
+  function parseAddress(address, displayName) {
     if (!address) return {};
     // Nominatim Indonesia: kecamatan bisa ada di berbagai field tergantung wilayah
-    // Urutan prioritas: municipality > city_district > quarter > suburb > neighbourhood
+    // Urutan: municipality > city_district > district > suburb > quarter > neighbourhood
     const rawDistrict =
       address.municipality ||
       address.city_district ||
-      address.quarter ||
+      address.district ||
       address.suburb ||
+      address.quarter ||
       address.neighbourhood ||
       '';
-    const district = stripPrefix(rawDistrict);
+    let district = stripPrefix(rawDistrict);
 
-    // Kota/Kabupaten: city > county > town > village (untuk daerah kecil)
+    // Fallback: cari pola "Kecamatan X" dari display_name
+    if (!district && displayName) {
+      const m = /\bKecamatan\s+([A-Za-z][A-Za-z\s]+?)(?:,|$)/i.exec(displayName);
+      if (m) district = m[1].trim();
+    }
+
+    // Kota/Kabupaten: city > county > town
     const city = stripPrefix(address.city || address.county || address.town || '');
 
     // Provinsi
     const province = address.state || '';
 
     // Kelurahan/desa
-    const village = stripPrefix(address.village || address.hamlet || address.suburb || '');
+    const village = stripPrefix(address.village || address.hamlet || address.quarter || '');
 
     return { district, city, province, village };
   }
@@ -1255,7 +1386,7 @@ const GeoTracker = (function () {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=id`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'LaukIn/1.0 (https://lauk.in)' },
-      signal: AbortSignal.timeout(6000)
+      signal: AbortSignal.timeout(8000)
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
@@ -1273,7 +1404,7 @@ const GeoTracker = (function () {
           try {
             const { latitude: lat, longitude: lon, accuracy } = pos.coords;
             const data = await reverseGeocode(lat, lon);
-            const addr = parseAddress(data.address);
+            const addr = parseAddress(data.address, data.display_name);
             const geo = {
               lat: parseFloat(lat.toFixed(5)),
               lon: parseFloat(lon.toFixed(5)),
@@ -1287,9 +1418,18 @@ const GeoTracker = (function () {
             };
             saveCache(geo);
             resolve(geo);
-          } catch { saveCache(null); resolve(null); }
+          } catch {
+            // Nominatim gagal: reset _promise supaya bisa retry, tapi jangan cache null
+            _promise = null;
+            resolve(null);
+          }
         },
-        () => { saveCache(null); resolve(null); },
+        () => {
+          // Izin ditolak: cache null tapi reset _promise agar button bisa trigger ulang
+          saveCache(null);
+          _promise = null;
+          resolve(null);
+        },
         { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false }
       );
     });
@@ -1353,6 +1493,75 @@ function showOngkirResult(html) {
   el.classList.add('visible');
 }
 
+function buildAreaList() {
+  const rows = Object.entries(ONGKIR_DATA)
+    .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
+    .map(([kec, price]) => {
+      const tag = price === 0
+        ? `<span class="area-list-badge free">Gratis</span>`
+        : `<span class="area-list-badge">Rp ${price.toLocaleString('id-ID')}</span>`;
+      return `<div class="area-list-row"><span class="area-list-kec">${kec}</span>${tag}</div>`;
+    }).join('');
+  return `<div class="area-list">${rows}</div>`;
+}
+
+function buildManualSelectOptions(selectedVal) {
+  const sorted = Object.keys(ONGKIR_DATA).sort((a, b) => a.localeCompare(b));
+  return sorted.map((kec) => {
+    const sel = kec === selectedVal ? ' selected' : '';
+    return `<option value="${kec}"${sel}>${kec}</option>`;
+  }).join('');
+}
+
+function onManualAreaChange(selectEl) {
+  const kec = selectEl.value;
+  const resultEl = document.getElementById('manualOngkirResult');
+  if (!kec) { resultEl.innerHTML = ''; return; }
+  const price = ONGKIR_DATA[kec];
+  const txt = price === 0 ? 'Gratis 🎉' : `Rp ${price.toLocaleString('id-ID')}`;
+  resultEl.innerHTML = `<div class="manual-ongkir-result">Ongkir ke <strong>Kec. ${kec}</strong>: <span class="manual-price${price === 0 ? ' free' : ''}">${txt}</span></div>`;
+}
+
+function buildOutsideAreaCard(locLine, WA_SVG) {
+  return `
+    <div class="ongkir-card-outside">
+      <span class="oc-icon">🗺️</span>
+      <div class="oc-title">Di luar area Bandung Raya</div>
+      <div class="oc-loc">📍 ${locLine}</div>
+      <div class="oc-desc">Ongkir ke lokasi Anda belum tersedia otomatis. Hubungi kami via WhatsApp untuk info ongkir ke wilayah Anda.</div>
+      <a class="oc-wa-btn" href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">${WA_SVG} Tanya Ongkir via WhatsApp</a>
+      <div class="oc-manual-row">
+        <button class="oc-mini-btn" type="button" onclick="toggleAreaList(this)">📋 Lihat area Bandung Raya</button>
+        <button class="oc-mini-btn" type="button" onclick="toggleManualOngkir(this)">🔍 Cek Ongkir Manual</button>
+      </div>
+      <div class="oc-area-list hidden" id="areaListPanel">${buildAreaList()}</div>
+      <div class="oc-manual-panel hidden" id="manualOngkirPanel">
+        <div class="manual-select-wrap">
+          <label class="manual-label">Pilih kecamatan tujuan:</label>
+          <select class="manual-select" onchange="onManualAreaChange(this)">
+            <option value="">— pilih kecamatan —</option>
+            ${buildManualSelectOptions('')}
+          </select>
+        </div>
+        <div id="manualOngkirResult"></div>
+      </div>
+    </div>`;
+}
+
+function toggleAreaList(btn) {
+  const panel = document.getElementById('areaListPanel');
+  const isHidden = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !isHidden);
+  btn.textContent = isHidden ? '📋 Sembunyikan area' : '📋 Lihat area Bandung Raya';
+}
+
+function toggleManualOngkir(btn) {
+  const panel = document.getElementById('manualOngkirPanel');
+  const isHidden = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !isHidden);
+  btn.textContent = isHidden ? '🔍 Tutup' : '🔍 Cek Ongkir Manual';
+}
+
 async function handleCekOngkir() {
   const btn = document.getElementById('cekOngkirBtn');
   btn.disabled = true;
@@ -1391,14 +1600,7 @@ async function handleCekOngkir() {
     } else {
       const kecLabel = geo.district ? `Kecamatan ${geo.district}` : (geo.city || 'Lokasi Anda');
       label = `${kecLabel} - Di luar area`;
-      showOngkirResult(`
-        <div class="ongkir-card-outside">
-          <span class="oc-icon">🗺️</span>
-          <div class="oc-title">Di luar area Bandung Raya</div>
-          <div class="oc-loc">📍 ${locLine || kecLabel}</div>
-          <div class="oc-desc">Ongkir ke lokasi Anda belum tersedia secara otomatis. Hubungi kami via WhatsApp untuk info ongkir khusus ke wilayah Anda.</div>
-          <a class="oc-wa-btn" href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">${WA_SVG} Tanya Ongkir via WhatsApp</a>
-        </div>`);
+      showOngkirResult(buildOutsideAreaCard(locLine || kecLabel, WA_SVG));
     }
 
     // Kirim event ke admin: hasil cek ongkir + data GPS lengkap

@@ -13,7 +13,8 @@ const ALLOWED_TYPES = new Set([
   'visitor',
   'order_intent',
   'menu_click',
-  'social_click'
+  'social_click',
+  'check_ongkir'
 ]);
 
 function jsonResponse(statusCode, body) {
