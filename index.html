@@ -1358,6 +1358,7 @@ const GeoTracker = (function () {
       address.municipality ||
       address.city_district ||
       address.district ||
+      address.subdistrict ||
       address.suburb ||
       address.quarter ||
       address.neighbourhood ||
@@ -1379,7 +1380,10 @@ const GeoTracker = (function () {
     // Kelurahan/desa
     const village = stripPrefix(address.village || address.hamlet || address.quarter || '');
 
-    return { district, city, province, village };
+    // subdistrict disimpan terpisah sebagai fallback matching ongkir
+    const subdistrict = stripPrefix(address.subdistrict || '');
+
+    return { district, city, province, village, subdistrict };
   }
 
   async function reverseGeocode(lat, lon) {
@@ -1404,10 +1408,7 @@ const GeoTracker = (function () {
           try {
             const { latitude: lat, longitude: lon, accuracy } = pos.coords;
             const data = await reverseGeocode(lat, lon);
-            console.log('[GeoDebug] Nominatim address fields:', JSON.stringify(data.address, null, 2));
-            console.log('[GeoDebug] display_name:', data.display_name);
             const addr = parseAddress(data.address, data.display_name);
-            console.log('[GeoDebug] parsed addr:', addr);
             const geo = {
               lat: parseFloat(lat.toFixed(5)),
               lon: parseFloat(lon.toFixed(5)),
@@ -1416,6 +1417,7 @@ const GeoTracker = (function () {
               province: addr.province,
               city: addr.city,
               district: addr.district,
+              subdistrict: addr.subdistrict,
               village: addr.village,
               source: 'gps'
             };
@@ -1586,9 +1588,10 @@ async function handleCekOngkir() {
       return;
     }
 
-    const match = findOngkir(geo.district);
+    const match = findOngkir(geo.district) || findOngkir(geo.subdistrict);
     let label;
-    const locLine = [geo.district ? 'Kec. ' + geo.district : '', geo.city].filter(Boolean).join(', ');
+    const resolvedKec = (match && match.kecamatan) || geo.district || geo.subdistrict || '';
+    const locLine = [resolvedKec ? 'Kec. ' + resolvedKec : '', geo.city].filter(Boolean).join(', ');
 
     if (match) {
       const isFree = match.price === 0;
@@ -1601,7 +1604,7 @@ async function handleCekOngkir() {
           <div class="ongkir-note">Ongkir khusus area Bandung Raya. Di luar ini, ongkir ditentukan via <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">chat WhatsApp →</a></div>
         </div>`);
     } else {
-      const kecLabel = geo.district ? `Kecamatan ${geo.district}` : (geo.city || 'Lokasi Anda');
+      const kecLabel = resolvedKec ? `Kecamatan ${resolvedKec}` : (geo.city || 'Lokasi Anda');
       label = `${kecLabel} - Di luar area`;
       showOngkirResult(buildOutsideAreaCard(locLine || kecLabel, WA_SVG));
     }
