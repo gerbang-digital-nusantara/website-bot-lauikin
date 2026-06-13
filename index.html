@@ -1275,23 +1275,35 @@ async function handleCekOngkir() {
     const geo = await GeoTracker.request();
     if (!geo) {
       showOngkirResult(`<div class="ongkir-outside">📍 Izin lokasi ditolak atau tidak tersedia.<br>Hubungi kami untuk cek ongkir: <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">Chat WhatsApp</a></div>`);
+      // Kirim event ke admin: ditolak
+      sendTrackingBeacon(buildAnalyticsEvent('check_ongkir', 'Izin Ditolak'));
       return;
     }
 
     const match = findOngkir(geo.district);
+    let label;
+
     if (match) {
       const isFree = match.price === 0;
+      label = isFree ? `${match.kecamatan} - Gratis` : `${match.kecamatan} - Rp ${match.price.toLocaleString('id-ID')}`;
       showOngkirResult(`
         <div class="ongkir-kec">📍 Kecamatan ${match.kecamatan}${geo.city ? ', ' + geo.city : ''}</div>
         <div class="ongkir-price${isFree ? ' free' : ''}">${formatRupiah(match.price)}</div>
         <div class="ongkir-note">Ongkir khusus area Bandung Raya. Di luar area ini, ongkir bisa ditentukan via <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">chat WhatsApp</a>.</div>
       `);
     } else {
-      const kec = geo.district ? `Kecamatan ${geo.district}` : (geo.city || 'lokasi Anda');
+      const kec = geo.district ? `Kecamatan ${geo.district}` : (geo.city || 'Lokasi tidak dikenal');
+      label = `${kec} - Di luar area`;
       showOngkirResult(`
         <div class="ongkir-outside">📍 ${kec} belum termasuk area Bandung Raya kami.<br>Ongkir bisa ditentukan via <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">chat WhatsApp</a>.</div>
       `);
     }
+
+    // Kirim event ke admin: hasil cek ongkir + data GPS lengkap
+    const analytics = buildAnalyticsEvent('check_ongkir', label);
+    const payload = JSON.stringify({ analytics, clientGeo: geo });
+    sendTrackingEventRaw(payload);
+
   } finally {
     btn.disabled = false;
     btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Cek Ongkir ke Lokasi Saya`;
@@ -1331,6 +1343,23 @@ function skipTracking(reason) {
     skipped: true,
     reason
   });
+}
+
+function sendTrackingEventRaw(rawPayload) {
+  if (!isTrackingEnabled()) return;
+  const endpoint = getTrackingEndpoint();
+  if (navigator.sendBeacon && typeof Blob === 'function') {
+    try {
+      const blob = new Blob([rawPayload], { type: 'application/json' });
+      if (navigator.sendBeacon(endpoint, blob)) return;
+    } catch {}
+  }
+  fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: rawPayload,
+    credentials: 'omit'
+  }).catch(() => {});
 }
 
 function sendTrackingEvent(analytics, retries = 2) {
