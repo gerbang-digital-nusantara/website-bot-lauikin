@@ -1404,7 +1404,10 @@ const GeoTracker = (function () {
           try {
             const { latitude: lat, longitude: lon, accuracy } = pos.coords;
             const data = await reverseGeocode(lat, lon);
+            console.log('[GeoDebug] Nominatim address fields:', JSON.stringify(data.address, null, 2));
+            console.log('[GeoDebug] display_name:', data.display_name);
             const addr = parseAddress(data.address, data.display_name);
+            console.log('[GeoDebug] parsed addr:', addr);
             const geo = {
               lat: parseFloat(lat.toFixed(5)),
               lon: parseFloat(lon.toFixed(5)),
