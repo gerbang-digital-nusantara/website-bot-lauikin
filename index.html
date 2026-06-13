@@ -396,47 +396,119 @@
   .ongkir-result {
     width: 100%;
     max-width: 420px;
-    background: #f0f7ff;
-    border: 1.5px solid #cce1f7;
-    border-radius: 14px;
-    padding: 16px 18px;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--blue-dark);
+    border-radius: 16px;
+    overflow: hidden;
     display: none;
+    box-shadow: 0 4px 20px rgba(15,79,126,0.12);
   }
 
   .ongkir-result.visible { display: block; }
 
-  .ongkir-result .ongkir-kec {
-    font-size: 13px;
-    color: #666;
-    margin-bottom: 6px;
+  /* card dalam area Bandung Raya */
+  .ongkir-card {
+    background: #f0f7ff;
+    border: 1.5px solid #cce1f7;
+    border-radius: 16px;
+    padding: 18px 20px 14px;
   }
 
-  .ongkir-result .ongkir-price {
-    font-size: 22px;
+  .ongkir-card .ongkir-kec {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .ongkir-card .ongkir-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .ongkir-card .ongkir-price {
+    font-size: 28px;
     font-weight: 800;
     color: var(--blue-dark);
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .ongkir-card .ongkir-price.free { color: #1a9c3e; }
+
+  .ongkir-card .ongkir-note {
+    font-size: 12px;
+    color: #666;
+    border-top: 1px solid #d0e6f7;
+    padding-top: 10px;
+    line-height: 1.55;
+  }
+
+  .ongkir-card .ongkir-note a {
+    color: var(--blue-dark);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  /* card di luar area / izin ditolak */
+  .ongkir-card-outside {
+    background: linear-gradient(135deg, #fff8f0 0%, #fff3e8 100%);
+    border: 1.5px solid #ffd9b3;
+    border-radius: 16px;
+    padding: 18px 20px;
+  }
+
+  .ongkir-card-outside .oc-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .ongkir-card-outside .oc-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #b85c00;
     margin-bottom: 4px;
   }
 
-  .ongkir-result .ongkir-price.free { color: #1a9c3e; }
-
-  .ongkir-result .ongkir-note {
+  .ongkir-card-outside .oc-loc {
     font-size: 12px;
-    color: #555;
-    margin-top: 8px;
-    border-top: 1px solid #d0e6f7;
-    padding-top: 8px;
+    color: #888;
+    margin-bottom: 10px;
+    font-weight: 500;
   }
 
-  .ongkir-result .ongkir-note a { color: var(--blue-dark); font-weight: 600; }
-
-  .ongkir-result .ongkir-outside {
+  .ongkir-card-outside .oc-desc {
     font-size: 13px;
     color: #555;
+    line-height: 1.55;
+    margin-bottom: 14px;
   }
+
+  .ongkir-card-outside .oc-wa-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    background: #25D366;
+    color: #fff;
+    text-decoration: none;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 4px 12px rgba(37,211,102,0.28);
+    transition: all 0.2s ease;
+  }
+
+  .ongkir-card-outside .oc-wa-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+  .ongkir-card-outside .oc-wa-btn svg { width: 18px; height: 18px; fill: #fff; flex-shrink: 0; }
 
   .section-title {
     text-align: center;
@@ -1150,17 +1222,32 @@ const GeoTracker = (function () {
     try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(val)); } catch {}
   }
 
+  function stripPrefix(s) {
+    return (s || '').replace(/^(?:Kecamatan|Kelurahan|Desa|Kota|Kabupaten)\s+/i, '').trim();
+  }
+
   function parseAddress(address) {
     if (!address) return {};
-    // Kecamatan: municipality (sering "Kecamatan X") > city_district > suburb
-    let district = address.municipality || address.city_district || address.suburb || '';
-    district = district.replace(/^Kecamatan\s+/i, '').trim();
-    // Kota/Kabupaten
-    const city = address.city || address.county || address.town || '';
+    // Nominatim Indonesia: kecamatan bisa ada di berbagai field tergantung wilayah
+    // Urutan prioritas: municipality > city_district > quarter > suburb > neighbourhood
+    const rawDistrict =
+      address.municipality ||
+      address.city_district ||
+      address.quarter ||
+      address.suburb ||
+      address.neighbourhood ||
+      '';
+    const district = stripPrefix(rawDistrict);
+
+    // Kota/Kabupaten: city > county > town > village (untuk daerah kecil)
+    const city = stripPrefix(address.city || address.county || address.town || '');
+
     // Provinsi
     const province = address.state || '';
+
     // Kelurahan/desa
-    const village = (address.village || address.hamlet || '').replace(/^(?:Kelurahan|Desa)\s+/i, '').trim();
+    const village = stripPrefix(address.village || address.hamlet || address.suburb || '');
+
     return { district, city, province, village };
   }
 
@@ -1271,32 +1358,47 @@ async function handleCekOngkir() {
   btn.disabled = true;
   btn.textContent = 'Mencari lokasi…';
 
+  const WA_SVG = `<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+
   try {
     const geo = await GeoTracker.request();
     if (!geo) {
-      showOngkirResult(`<div class="ongkir-outside">📍 Izin lokasi ditolak atau tidak tersedia.<br>Hubungi kami untuk cek ongkir: <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">Chat WhatsApp</a></div>`);
-      // Kirim event ke admin: ditolak
+      showOngkirResult(`
+        <div class="ongkir-card-outside">
+          <span class="oc-icon">📍</span>
+          <div class="oc-title">Lokasi tidak dapat dideteksi</div>
+          <div class="oc-desc">Izin lokasi ditolak atau tidak tersedia di perangkat ini.<br>Hubungi kami untuk info ongkir ke lokasi Anda.</div>
+          <a class="oc-wa-btn" href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">${WA_SVG} Tanya Ongkir via WhatsApp</a>
+        </div>`);
       sendTrackingBeacon(buildAnalyticsEvent('check_ongkir', 'Izin Ditolak'));
       return;
     }
 
     const match = findOngkir(geo.district);
     let label;
+    const locLine = [geo.district ? 'Kec. ' + geo.district : '', geo.city].filter(Boolean).join(', ');
 
     if (match) {
       const isFree = match.price === 0;
       label = isFree ? `${match.kecamatan} - Gratis` : `${match.kecamatan} - Rp ${match.price.toLocaleString('id-ID')}`;
       showOngkirResult(`
-        <div class="ongkir-kec">📍 Kecamatan ${match.kecamatan}${geo.city ? ', ' + geo.city : ''}</div>
-        <div class="ongkir-price${isFree ? ' free' : ''}">${formatRupiah(match.price)}</div>
-        <div class="ongkir-note">Ongkir khusus area Bandung Raya. Di luar area ini, ongkir bisa ditentukan via <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">chat WhatsApp</a>.</div>
-      `);
+        <div class="ongkir-card">
+          <div class="ongkir-kec">📍 ${locLine || 'Lokasi terdeteksi'}</div>
+          <div class="ongkir-label">Ongkos kirim ke lokasi Anda</div>
+          <div class="ongkir-price${isFree ? ' free' : ''}">${formatRupiah(match.price)}</div>
+          <div class="ongkir-note">Ongkir khusus area Bandung Raya. Di luar ini, ongkir ditentukan via <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">chat WhatsApp →</a></div>
+        </div>`);
     } else {
-      const kec = geo.district ? `Kecamatan ${geo.district}` : (geo.city || 'Lokasi tidak dikenal');
-      label = `${kec} - Di luar area`;
+      const kecLabel = geo.district ? `Kecamatan ${geo.district}` : (geo.city || 'Lokasi Anda');
+      label = `${kecLabel} - Di luar area`;
       showOngkirResult(`
-        <div class="ongkir-outside">📍 ${kec} belum termasuk area Bandung Raya kami.<br>Ongkir bisa ditentukan via <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">chat WhatsApp</a>.</div>
-      `);
+        <div class="ongkir-card-outside">
+          <span class="oc-icon">🗺️</span>
+          <div class="oc-title">Di luar area Bandung Raya</div>
+          <div class="oc-loc">📍 ${locLine || kecLabel}</div>
+          <div class="oc-desc">Ongkir ke lokasi Anda belum tersedia secara otomatis. Hubungi kami via WhatsApp untuk info ongkir khusus ke wilayah Anda.</div>
+          <a class="oc-wa-btn" href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">${WA_SVG} Tanya Ongkir via WhatsApp</a>
+        </div>`);
     }
 
     // Kirim event ke admin: hasil cek ongkir + data GPS lengkap
