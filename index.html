@@ -359,6 +359,85 @@
     flex-shrink: 0;
   }
 
+  /* ── Cek Ongkir ── */
+  .ongkir-wrap {
+    padding: 10px 24px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    animation: fadeUp 0.5s ease 0.52s both;
+  }
+
+  .ongkir-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--blue-dark);
+    color: #fff;
+    border: none;
+    padding: 13px 28px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    width: 100%;
+    max-width: 420px;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(15,79,126,0.22);
+    transition: all 0.22s ease;
+  }
+
+  .ongkir-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(15,79,126,0.3); }
+  .ongkir-btn:active { transform: scale(0.97); }
+  .ongkir-btn svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+  .ongkir-result {
+    width: 100%;
+    max-width: 420px;
+    background: #f0f7ff;
+    border: 1.5px solid #cce1f7;
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--blue-dark);
+    display: none;
+  }
+
+  .ongkir-result.visible { display: block; }
+
+  .ongkir-result .ongkir-kec {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 6px;
+  }
+
+  .ongkir-result .ongkir-price {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--blue-dark);
+    margin-bottom: 4px;
+  }
+
+  .ongkir-result .ongkir-price.free { color: #1a9c3e; }
+
+  .ongkir-result .ongkir-note {
+    font-size: 12px;
+    color: #555;
+    margin-top: 8px;
+    border-top: 1px solid #d0e6f7;
+    padding-top: 8px;
+  }
+
+  .ongkir-result .ongkir-note a { color: var(--blue-dark); font-weight: 600; }
+
+  .ongkir-result .ongkir-outside {
+    font-size: 13px;
+    color: #555;
+  }
+
   .section-title {
     text-align: center;
     font-size: 19px;
@@ -783,6 +862,14 @@
   </a>
 </div>
 
+<div class="ongkir-wrap">
+  <button class="ongkir-btn" id="cekOngkirBtn" onclick="handleCekOngkir()">
+    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Cek Ongkir ke Lokasi Saya
+  </button>
+  <div class="ongkir-result" id="ongkirResult"></div>
+</div>
+
 <div class="divider"><span>Lokasi</span></div>
 
 <div class="location-wrap">
@@ -1053,7 +1140,8 @@ const GeoTracker = (function () {
     if (_cached !== undefined) return;
     try {
       const raw = sessionStorage.getItem(CACHE_KEY);
-      _cached = raw ? JSON.parse(raw) : null;
+      if (raw) _cached = JSON.parse(raw);
+      // jika tidak ada di storage, biarkan _cached tetap undefined (belum pernah dicek)
     } catch { _cached = null; }
   }
 
@@ -1143,6 +1231,72 @@ const GeoTracker = (function () {
 })();
 
 GeoTracker.init();
+
+// ── Data Ongkir ──
+const ONGKIR_DATA = {
+  "Andir": 15000, "Astana Anyar": 15000, "Antapani": 5000, "Arcamanik": 5000,
+  "Babakan Ciparay": 15000, "Bandung Kidul": 5000, "Bandung Kulon": 15000,
+  "Bandung Wetan": 10000, "Batununggal": 5000, "Bojongloa Kaler": 15000,
+  "Bojongloa Kidul": 15000, "Buahbatu": 0, "Cibeunying Kaler": 10000,
+  "Cibeunying Kidul": 10000, "Cibiru": 15000, "Cicendo": 15000, "Cidadap": 20000,
+  "Cinambo": 10000, "Coblong": 15000, "Gedebage": 10000, "Kiaracondong": 5000,
+  "Lengkong": 10000, "Mandalajati": 10000, "Panyileukan": 15000, "Rancasari": 5000,
+  "Regol": 10000, "Sukajadi": 20000, "Sukasari": 20000, "Sumur Bandung": 10000,
+  "Ujungberung": 10000, "Bojongsoang": 5000, "Dayeuhkolot": 10000
+};
+
+const WA_ONGKIR_URL = 'https://wa.me/6285199204460?text=Halo%20Lauk.In%2C%20saya%20ingin%20tanya%20ongkir%20ke%20lokasi%20saya.';
+
+function formatRupiah(n) {
+  return n === 0 ? 'Gratis 🎉' : 'Rp ' + n.toLocaleString('id-ID');
+}
+
+function findOngkir(district) {
+  if (!district) return null;
+  const d = district.trim().toLowerCase();
+  for (const [key, val] of Object.entries(ONGKIR_DATA)) {
+    if (key.toLowerCase() === d) return { kecamatan: key, price: val };
+  }
+  return null;
+}
+
+function showOngkirResult(html) {
+  const el = document.getElementById('ongkirResult');
+  el.innerHTML = html;
+  el.classList.add('visible');
+}
+
+async function handleCekOngkir() {
+  const btn = document.getElementById('cekOngkirBtn');
+  btn.disabled = true;
+  btn.textContent = 'Mencari lokasi…';
+
+  try {
+    const geo = await GeoTracker.request();
+    if (!geo) {
+      showOngkirResult(`<div class="ongkir-outside">📍 Izin lokasi ditolak atau tidak tersedia.<br>Hubungi kami untuk cek ongkir: <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">Chat WhatsApp</a></div>`);
+      return;
+    }
+
+    const match = findOngkir(geo.district);
+    if (match) {
+      const isFree = match.price === 0;
+      showOngkirResult(`
+        <div class="ongkir-kec">📍 Kecamatan ${match.kecamatan}${geo.city ? ', ' + geo.city : ''}</div>
+        <div class="ongkir-price${isFree ? ' free' : ''}">${formatRupiah(match.price)}</div>
+        <div class="ongkir-note">Ongkir khusus area Bandung Raya. Di luar area ini, ongkir bisa ditentukan via <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">chat WhatsApp</a>.</div>
+      `);
+    } else {
+      const kec = geo.district ? `Kecamatan ${geo.district}` : (geo.city || 'lokasi Anda');
+      showOngkirResult(`
+        <div class="ongkir-outside">📍 ${kec} belum termasuk area Bandung Raya kami.<br>Ongkir bisa ditentukan via <a href="${WA_ONGKIR_URL}" target="_blank" rel="noopener">chat WhatsApp</a>.</div>
+      `);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Cek Ongkir ke Lokasi Saya`;
+  }
+}
 
 function makeTrackingPayload(analytics) {
   const clientGeo = GeoTracker.getGeo();
